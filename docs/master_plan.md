@@ -112,6 +112,7 @@ clean sample.
 | 18 | `sprint_planning.md` | Agentic sprint breakdown + resource allocation |
 | 19 | `production_deployment.md` | Go-live runbook + rollback |
 | 20 | `reference.md` | **Resource hub — start here when stuck** (internal + external links, troubleshooting playbook) |
+| 21 | `ui_streamlit.md` | Streamlit UI plan — 4-page app for validating all 8 user stories |
 
 > **Stuck during execution?** Jump to `reference.md` — it routes any symptom to the owning
 > document and the authoritative external reference.
