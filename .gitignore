@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+*.env
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+
+# Secrets / credentials
+*.pem
+*.key
+*.p12
+.secrets
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Spark / Glue build artifacts
+*.jar
+spark-warehouse/
+derby.log
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+junit-*.xml
