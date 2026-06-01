@@ -40,6 +40,8 @@
 | Logs, metrics, alarms | `monitoring_observability.md` | observability / SLA |
 | Sprints + agent roles | `sprint_planning.md` | sequencing work |
 | Go-live + rollback | `production_deployment.md` | deploying / recovering |
+| Streamlit UI (pages, IAM, local dev) | `ui_streamlit.md` | UI won't connect / page broken |
+| Human operator setup (IAM, bootstrap, secrets) | `HUMAN.md` (root) | first-time setup / credential issues |
 
 ## 3. External references (authoritative docs)
 
@@ -99,13 +101,20 @@
 - AWS IAM best practices: https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html
 - AWS KMS: https://docs.aws.amazon.com/kms/latest/developerguide/overview.html
 
-### Python tooling (normalization + tests)
+### Python tooling (normalization + tests + UI)
 - pandas `read_excel`: https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 - openpyxl (xlsx engine): https://openpyxl.readthedocs.io/
 - delta-rs (Python deltalake): https://delta-io.github.io/delta-rs/
-- AWS SDK for Pandas (awswrangler): https://aws-sdk-pandas.github.io/
+- AWS SDK for Pandas (awswrangler — Athena in UI): https://aws-sdk-pandas.github.io/
 - pytest: https://docs.pytest.org/ · chispa (Spark test asserts): https://github.com/MrPowers/chispa
 - moto (mock AWS, e.g. DynamoDB): https://docs.getmoto.org/
+
+### Streamlit UI
+- Streamlit docs: https://docs.streamlit.io/
+- Streamlit multipage apps: https://docs.streamlit.io/develop/concepts/multipage-apps
+- awswrangler Athena: https://aws-sdk-pandas.readthedocs.io/en/stable/stubs/awswrangler.athena.read_sql_query.html
+- boto3 Step Functions: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/stepfunctions.html
+- IAM Identity Center (SSO — recommended dev access): https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html
 
 ## 4. Troubleshooting playbook (symptom → route)
 | Symptom | First look | Then |
@@ -123,6 +132,9 @@
 | "Access Denied" at runtime | `security_iam.md` §2 (least-privilege roles) | IAM best practices |
 | Bad batch landed in prod | `production_deployment.md` §4 (Delta time travel RESTORE) | Delta time travel |
 | Need to backfill history | `data_handling.md` §4.2, `orchestration_stepfunctions.md` §6 | Step Functions `Map` |
+| Streamlit UI won't connect to Athena | `ui_streamlit.md` §4 — check `AWS_PROFILE` / `UI_ROLE_ARN`; run `aws sts get-caller-identity` | awswrangler Athena link |
+| Streamlit shows "Access Denied" | `ui_streamlit.md` §6 (`streamlit-ui-role` permissions) | IAM best practices |
+| First-time AWS/GitHub setup | `HUMAN.md` §1–§6 | IAM Identity Center link |
 
 ## 5. Skills available in this environment (for the executing agent)
 - **`terrashark`** — Terraform/OpenTofu failure-mode diagnosis (identity churn, secret

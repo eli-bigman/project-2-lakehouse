@@ -18,6 +18,9 @@ Production-grade **medallion Lakehouse on AWS** for an e-commerce platform:
 | `docs/decision.md` | All ADRs with rationale + two rounds of review dispositions |
 | `docs/reference.md` | Stuck? Start here — routes symptoms to owning doc + external links |
 | `.ai/review.md` | Senior review history (round 1 + round 2); §5 has accepted/rejected verdicts |
+| `HUMAN.md` | Human operator guide — AWS setup, IAM access, bootstrap steps, GitHub secrets |
+| `.env.example` | All environment variables with inline documentation; copy to `.env` |
+| `docs/ui_streamlit.md` | Streamlit UI plan — 4 pages for validating all 8 user stories |
 
 ---
 
@@ -80,6 +83,7 @@ ecom-lakehouse/
 ├── src/lakehouse/         ← shared Spark library (schemas, transforms, validation, merge)
 ├── src/glue_jobs/         ← thin per-dataset entrypoints
 ├── src/normalize/         ← Lambda normalizer (xlsx/csv → Parquet)
+├── src/ui/                ← Streamlit UI (Sprint 5; see docs/ui_streamlit.md)
 ├── infra/                 ← Terraform modules + envs
 ├── orchestration/         ← Step Functions ASL definition
 ├── tests/                 ← unit + integration + fixtures
