@@ -55,13 +55,16 @@ Agent roles: **InfraAgent**, **DataAgent** (Spark/Delta), **OrchestrationAgent**
 - **Owner:** OrchestrationAgent. **DoD:** end-to-end execution reaches `Succeed`; induced
   failure routes to `HandleFailure` + alert; duplicate → `NoOpSucceed`.
 
-### Sprint 5 — Catalog, Athena & CI/CD + hardening
-*Goal:* queryable + reproducible + observable.
+### Sprint 5 — Catalog, Athena & CI/CD + hardening + Streamlit UI
+*Goal:* queryable + reproducible + observable + user-story-testable.
 - Glue Catalog registration + Athena workgroup + validation queries.
 - `ci.yml` + `deploy.yml` (OIDC, main-scoped) + smoke test.
 - Dashboards + alarms; security/compliance gates.
+- **Streamlit UI** (`src/ui/`) — 4 pages: Pipeline Dashboard, Data Explorer, Data Quality,
+  Batch Trigger. Local dev only; validates all 8 user stories interactively. See
+  `ui_streamlit.md` for page specs and the optional `streamlit-ui-role` for deployment.
 - **Owner:** PlatformAgent. **DoD:** PR gates enforced; `main` deploys dev; Athena returns
-  expected rows; alarms fire on induced faults.
+  expected rows; alarms fire on induced faults; all 8 US acceptance criteria pass in UI.
 
 ### Sprint 6 — Production readiness
 *Goal:* prod go-live.
