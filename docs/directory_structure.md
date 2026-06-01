@@ -40,8 +40,21 @@ ecom-lakehouse/
 │   │   ├── merge.py                   # Delta MERGE/upsert helpers
 │   │   ├── ledger.py                  # DynamoDB ledger/watermark client
 │   │   └── logging_utils.py           # structured logging + metrics emit
-│   └── athena/
-│       └── validation_queries.sql     # post-load presence/quality checks
+│   ├── athena/
+│   │   └── validation_queries.sql     # post-load presence/quality checks
+│   └── ui/                            # Streamlit UI (see ui_streamlit.md)
+│       ├── app.py                     # entry point; page config + nav
+│       ├── pages/
+│       │   ├── 1_pipeline_dashboard.py
+│       │   ├── 2_data_explorer.py
+│       │   ├── 3_data_quality.py
+│       │   └── 4_batch_trigger.py
+│       ├── components/
+│       │   ├── athena.py              # awswrangler query helpers + cost guardrails
+│       │   ├── ledger.py              # DynamoDB ledger/watermark reads
+│       │   ├── stepfunctions.py       # execution list, start, poll
+│       │   └── cloudwatch.py          # alarm status, metric history
+│       └── config.py                  # reads from .env / environment
 │
 ├── infra/                             # Terraform (see terraform.md)
 │   ├── modules/
