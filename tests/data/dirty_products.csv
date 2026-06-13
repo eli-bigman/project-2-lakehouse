@@ -1,0 +1,5 @@
+product_id,department_id,department,product_name
+,1,Books,Missing PK (null product_id -- P1)
+6,2,Gadgets,Invalid dept (P4)
+7,,Home, (empty product_name -- P5)
+8,3,Sports,Valid Row

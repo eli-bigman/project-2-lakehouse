@@ -11,7 +11,7 @@ venv/
 
 # Terraform
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl is intentionally tracked — pins provider versions for reproducible CI
 *.tfstate
 *.tfstate.backup
 *.tfvars

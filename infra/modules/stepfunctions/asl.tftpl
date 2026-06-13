@@ -1,0 +1,207 @@
+{
+  "Comment": "E-Commerce Lakehouse ingestion pipeline — ${env}. Standard workflow (ADR-010). Step Functions owns retries.",
+  "StartAt": "ClaimFile",
+  "States": {
+    "ClaimFile": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${claim_fn_arn}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.claimResult",
+      "Next": "NormalizeFile",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["DuplicateFileError"],
+          "ResultPath": "$.error",
+          "Next": "FileAlreadyProcessed"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "FileAlreadyProcessed": {
+      "Type": "Succeed",
+      "Comment": "Idempotency: file was already processed. No-op."
+    },
+
+    "NormalizeFile": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${normalize_fn_arn}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.normalizeResult",
+      "Next": "ValidateSchema",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "ValidateSchema": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${validate_schema_fn_arn}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.validateResult",
+      "Next": "StartGlueIngest",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 1,
+          "BackoffRate": 1
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["SchemaValidationError"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "StartGlueIngest": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${glue_ingest_job}",
+        "Arguments": {
+          "--dataset.$": "$.dataset",
+          "--file_key.$": "$.file_key",
+          "--batch_id.$": "$.batch_id"
+        }
+      },
+      "ResultPath": "$.glueResult",
+      "Next": "RunOptimize",
+      "Retry": [
+        {
+          "ErrorEquals": ["Glue.ConcurrentRunsExceededException"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "RunOptimize": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${glue_optimize_job}",
+        "Arguments": {
+          "--tables.$": "$.dataset"
+        }
+      },
+      "ResultPath": "$.optimizeResult",
+      "Next": "ArchiveFile",
+      "Retry": [
+        {
+          "ErrorEquals": ["Glue.ConcurrentRunsExceededException"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.optimizeError",
+          "Next": "ArchiveFile",
+          "Comment": "Optimize failure is non-critical; pipeline continues to archive."
+        }
+      ]
+    },
+
+    "ArchiveFile": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${archive_fn_arn}",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.archiveResult",
+      "Next": "PipelineSucceeded",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "PipelineSucceeded": {
+      "Type": "Succeed",
+      "Comment": "File ingested, Delta table updated, original archived."
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Subject": "Lakehouse Pipeline Failure",
+        "Message": {
+          "Input.$": "States.Format('Pipeline failed in env=${env}. Error: {}', States.JsonToString($.error))"
+        }
+      },
+      "Next": "PipelineFailed"
+    },
+
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "PipelineError",
+      "Cause": "Pipeline execution failed — see SNS notification for details."
+    }
+  }
+}

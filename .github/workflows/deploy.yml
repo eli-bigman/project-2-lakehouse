@@ -1,0 +1,56 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install deps
+        run: pip install -e ".[dev]"
+
+      - name: Build lakehouse wheel
+        run: pip wheel --no-deps -w dist/ .
+
+      - name: Upload artifacts to S3
+        run: |
+          aws s3 cp dist/*.whl s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/wheels/lakehouse-latest.whl
+          aws s3 cp src/glue_jobs/ingest.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/ingest.py
+          aws s3 cp src/glue_jobs/optimize.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/optimize.py
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Terraform apply (dev)
+        working-directory: infra/envs/dev
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_github_org: eli-bigman
+          TF_VAR_github_repo: ecom-lakehouse
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Smoke test (trigger SF execution)
+        run: python scripts/smoke_test.py

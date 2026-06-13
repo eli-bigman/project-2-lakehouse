@@ -1,0 +1,15 @@
+# FILE 20: infra/envs/dev/dev.tfvars.example
+# Template for dev environment variable values.
+# Copy to dev.tfvars (gitignored) and fill in your values before running Terraform.
+#
+# Usage:
+#   cp dev.tfvars.example dev.tfvars
+#   # Edit dev.tfvars with your real values
+#   terraform plan -var-file=dev.tfvars
+#   terraform apply -var-file=dev.tfvars
+
+account_id       = "647594457599"
+alert_email      = "your-email@example.com"
+github_org       = "eli-bigman"
+github_repo      = "ecom-lakehouse"
+protect_stateful = true
