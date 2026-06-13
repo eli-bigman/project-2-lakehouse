@@ -33,8 +33,6 @@ from typing import Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from lakehouse.config import DYNAMODB_LEDGER, DYNAMODB_WATERMARKS
-
 logger = logging.getLogger(__name__)
 
 

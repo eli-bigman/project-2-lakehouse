@@ -25,8 +25,6 @@ The Lambda does NOT perform value cleaning — it preserves raw values as-is so
 that the Glue job's enforce_types() sees what was actually in the source file.
 """
 
-import hashlib
-import io
 import logging
 import os
 import tempfile
@@ -87,7 +85,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     batch_id: str = event["batch_id"]
     raw_bucket: str = event["raw_bucket"]
     staging_bucket: str = event["staging_bucket"]
-    env: str = event["env"]
 
     logger.info(
         "Normalizing file: bucket=%s key=%s dataset=%s batch_id=%s",

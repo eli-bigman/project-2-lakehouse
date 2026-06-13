@@ -92,7 +92,9 @@ def _load_dedup_checks():
             if not df.empty:
                 results.append(df.iloc[0].to_dict())
         except Exception as exc:
-            results.append({"dataset": dataset, "pk_column": pk, "duplicate_count": f"ERROR: {exc}"})
+            results.append(
+                {"dataset": dataset, "pk_column": pk, "duplicate_count": f"ERROR: {exc}"}
+            )
     return pd.DataFrame(results) if results else pd.DataFrame()
 
 
@@ -118,7 +120,10 @@ def render() -> None:
             # Bar chart of reject reasons across all batches
             st.subheader("Reject Reasons — Distribution")
             reason_totals = (
-                df_counts.groupby("reason")["count"].sum().reset_index().sort_values("count", ascending=False)
+                df_counts.groupby("reason")["count"]
+                .sum()
+                .reset_index()
+                .sort_values("count", ascending=False)
             )
             st.bar_chart(reason_totals.set_index("reason")["count"])
     except Exception as exc:
@@ -172,7 +177,8 @@ def render() -> None:
             # Highlight rows with duplicates
             def _highlight(row):
                 try:
-                    return ["background-color: #ffe0e0" if int(row["duplicate_count"]) > 0 else ""] * len(row)
+                    flag = int(row["duplicate_count"]) > 0
+                    return ["background-color: #ffe0e0" if flag else ""] * len(row)
                 except (ValueError, TypeError):
                     return ["background-color: #fff3cd"] * len(row)
 

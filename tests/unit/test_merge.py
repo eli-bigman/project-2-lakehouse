@@ -18,7 +18,6 @@ from decimal import Decimal
 
 import pytest
 from delta.tables import DeltaTable
-from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DecimalType,
     LongType,

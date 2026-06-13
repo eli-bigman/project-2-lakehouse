@@ -13,12 +13,8 @@ Metrics computed here (compute_metrics) feed:
 import json
 import logging
 import sys
-from typing import Optional
-
 import boto3
 from botocore.exceptions import ClientError
-
-from lakehouse.config import PROJECT_PREFIX
 
 
 # ---------------------------------------------------------------------------

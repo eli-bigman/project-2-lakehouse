@@ -150,10 +150,12 @@ def sample_orders_df(spark):
     3 clean order rows.  Source-shaped: includes `date` column but NOT
     `order_date` (that is derived by transforms.derive).
     """
+    d = datetime.datetime
+    dd = datetime.date
     data = [
-        (1, 1001, 501, datetime.datetime(2025, 4, 1, 10, 0, 0), Decimal("49.99"), datetime.date(2025, 4, 1)),
-        (2, 1002, 502, datetime.datetime(2025, 4, 1, 11, 30, 0), Decimal("129.50"), datetime.date(2025, 4, 1)),
-        (3, 1003, 503, datetime.datetime(2025, 4, 1, 14, 0, 0), Decimal("75.00"), datetime.date(2025, 4, 1)),
+        (1, 1001, 501, d(2025, 4, 1, 10, 0, 0), Decimal("49.99"), dd(2025, 4, 1)),
+        (2, 1002, 502, d(2025, 4, 1, 11, 30, 0), Decimal("129.50"), dd(2025, 4, 1)),
+        (3, 1003, 503, d(2025, 4, 1, 14, 0, 0), Decimal("75.00"), dd(2025, 4, 1)),
     ]
     return spark.createDataFrame(data, schema=_ORDERS_SOURCE_SCHEMA)
 
@@ -183,12 +185,14 @@ def sample_order_items_df(spark):
     5 clean order_item rows.  FK-valid against sample_orders (1001–1003)
     and sample_products (1–5).  Source-shaped: includes `date` but not `order_date`.
     """
+    d = datetime.datetime
+    dd = datetime.date
     data = [
-        (1, 1001, 501, 7, 1, 1, 0, datetime.datetime(2025, 4, 1, 10, 0, 0), datetime.date(2025, 4, 1)),
-        (2, 1001, 501, 7, 2, 2, 1, datetime.datetime(2025, 4, 1, 10, 0, 0), datetime.date(2025, 4, 1)),
-        (3, 1002, 502, 14, 3, 1, 0, datetime.datetime(2025, 4, 1, 11, 30, 0), datetime.date(2025, 4, 1)),
-        (4, 1002, 502, 14, 4, 2, 0, datetime.datetime(2025, 4, 1, 11, 30, 0), datetime.date(2025, 4, 1)),
-        (5, 1003, 503, 21, 5, 1, 1, datetime.datetime(2025, 4, 1, 14, 0, 0), datetime.date(2025, 4, 1)),
+        (1, 1001, 501, 7, 1, 1, 0, d(2025, 4, 1, 10, 0, 0), dd(2025, 4, 1)),
+        (2, 1001, 501, 7, 2, 2, 1, d(2025, 4, 1, 10, 0, 0), dd(2025, 4, 1)),
+        (3, 1002, 502, 14, 3, 1, 0, d(2025, 4, 1, 11, 30, 0), dd(2025, 4, 1)),
+        (4, 1002, 502, 14, 4, 2, 0, d(2025, 4, 1, 11, 30, 0), dd(2025, 4, 1)),
+        (5, 1003, 503, 21, 5, 1, 1, d(2025, 4, 1, 14, 0, 0), dd(2025, 4, 1)),
     ]
     return spark.createDataFrame(data, schema=_ORDER_ITEMS_SOURCE_SCHEMA)
 

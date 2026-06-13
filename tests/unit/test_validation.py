@@ -183,7 +183,8 @@ class TestOrderValidation:
     def test_future_timestamp_quarantined(self, spark):
         """Rule O5: order_timestamp in 2099 → quarantine."""
         data = [
-            (1, 1001, 501, datetime.datetime(2099, 1, 1, 0, 0, 0), Decimal("50.00"), datetime.date(2099, 1, 1))
+            (1, 1001, 501, datetime.datetime(2099, 1, 1, 0, 0, 0),
+             Decimal("50.00"), datetime.date(2099, 1, 1))
         ]
         df = _make_orders(spark, data)
 
@@ -291,7 +292,7 @@ class TestRejectRateGate:
             gate(metrics, threshold=0.05)
 
     def test_compute_metrics_fields(self, spark, sample_products_df):
-        """compute_metrics must return a dict with rows_in, rows_valid, rows_rejected, reject_rate."""
+        """compute_metrics must return rows_in, rows_valid, rows_rejected, reject_rate."""
         valid_df, rejected_df = apply_rules(sample_products_df, PRODUCT_RULES)
         metrics = compute_metrics(sample_products_df, valid_df, rejected_df)
 

@@ -12,8 +12,6 @@ DataFrames exclusively.
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType
 
-from lakehouse import config
-
 
 def delta_session(app_name: str, enable_hive_catalog: bool = False) -> SparkSession:
     """

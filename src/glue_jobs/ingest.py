@@ -36,7 +36,7 @@ from lakehouse import merge as lake_merge
 from lakehouse.ledger import LedgerClient
 from lakehouse import logging_utils
 from lakehouse.schemas import SCHEMAS
-from lakehouse.config import MERGE_KEY, ZORDER_COLS, TABLE_PATH, DATASET_TO_TABLE
+from lakehouse.config import MERGE_KEY, DATASET_TO_TABLE
 
 
 def parse_args(argv=None):
@@ -119,7 +119,6 @@ def main(argv=None):
     table_name = DATASET_TO_TABLE[args.dataset]
     target_path = f"s3://{dwh_bucket}/{table_name}/"
     merge_key = MERGE_KEY[args.dataset]
-    zorder_cols = ZORDER_COLS[args.dataset]
     schema = SCHEMAS[args.dataset]
 
     # file_key is used as the DynamoDB ledger PK; derive from source_file URI

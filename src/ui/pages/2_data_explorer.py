@@ -41,7 +41,9 @@ _DATASETS = {
 }
 
 
-def _build_query(dataset: str, date_from: datetime.date | None, date_to: datetime.date | None) -> str:
+def _build_query(
+    dataset: str, date_from: datetime.date | None, date_to: datetime.date | None
+) -> str:
     """Build a SELECT query with an optional date range WHERE clause."""
     meta = _DATASETS[dataset]
     where_clauses = []

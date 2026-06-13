@@ -83,6 +83,8 @@ TABLE_PATH = {
 # Where the Lambda normalizer writes Parquet:
 #   s3://{STAGING_BUCKET}/{dataset}/batch_id={batch_id}/part.parquet
 # ---------------------------------------------------------------------------
+
+
 def staging_prefix(dataset: str, batch_id: str) -> str:
     """Return the S3 prefix for a staging Parquet drop."""
     return f"s3://{STAGING_BUCKET}/{dataset}/batch_id={batch_id}/"

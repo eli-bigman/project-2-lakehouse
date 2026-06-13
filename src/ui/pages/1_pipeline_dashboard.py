@@ -13,7 +13,6 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from ui import config
 from ui.components import ledger as ledger_helper
 from ui.components import stepfunctions as sf_helper
 from ui.components.cloudwatch import get_metric_history

@@ -24,8 +24,6 @@ DynamicFrames are PROHIBITED (ADR-019) — this module uses DataFrames + DeltaTa
 from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
 
-from lakehouse import config
-
 
 def upsert(
     spark: SparkSession,

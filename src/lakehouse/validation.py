@@ -27,7 +27,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, SparkSession
 
 from lakehouse.schemas import VALID_DEPARTMENTS
-from lakehouse.config import TABLE_PATH, DATASET_TO_TABLE
+from lakehouse.config import DATASET_TO_TABLE
 from lakehouse import io as lake_io
 
 # ---------------------------------------------------------------------------

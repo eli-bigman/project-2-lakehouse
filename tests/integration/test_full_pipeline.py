@@ -94,18 +94,20 @@ _CLEAN_PRODUCTS = [
     (5, 5, "Clothing", "Running Shoes"),
 ]
 
+_d = datetime.datetime
+_dd = datetime.date
 _CLEAN_ORDERS = [
-    (1, 1001, 501, datetime.datetime(2025, 4, 1, 10, 0, 0), Decimal("49.99"), datetime.date(2025, 4, 1)),
-    (2, 1002, 502, datetime.datetime(2025, 4, 1, 11, 30, 0), Decimal("129.50"), datetime.date(2025, 4, 1)),
-    (3, 1003, 503, datetime.datetime(2025, 4, 1, 14, 0, 0), Decimal("75.00"), datetime.date(2025, 4, 1)),
+    (1, 1001, 501, _d(2025, 4, 1, 10, 0, 0), Decimal("49.99"), _dd(2025, 4, 1)),
+    (2, 1002, 502, _d(2025, 4, 1, 11, 30, 0), Decimal("129.50"), _dd(2025, 4, 1)),
+    (3, 1003, 503, _d(2025, 4, 1, 14, 0, 0), Decimal("75.00"), _dd(2025, 4, 1)),
 ]
 
 _CLEAN_ITEMS = [
-    (1, 1001, 501, 7, 1, 1, 0, datetime.datetime(2025, 4, 1, 10, 0, 0), datetime.date(2025, 4, 1)),
-    (2, 1001, 501, 7, 2, 2, 1, datetime.datetime(2025, 4, 1, 10, 0, 0), datetime.date(2025, 4, 1)),
-    (3, 1002, 502, 14, 3, 1, 0, datetime.datetime(2025, 4, 1, 11, 30, 0), datetime.date(2025, 4, 1)),
-    (4, 1002, 502, 14, 4, 2, 0, datetime.datetime(2025, 4, 1, 11, 30, 0), datetime.date(2025, 4, 1)),
-    (5, 1003, 503, 21, 5, 1, 1, datetime.datetime(2025, 4, 1, 14, 0, 0), datetime.date(2025, 4, 1)),
+    (1, 1001, 501, 7, 1, 1, 0, _d(2025, 4, 1, 10, 0, 0), _dd(2025, 4, 1)),
+    (2, 1001, 501, 7, 2, 2, 1, _d(2025, 4, 1, 10, 0, 0), _dd(2025, 4, 1)),
+    (3, 1002, 502, 14, 3, 1, 0, _d(2025, 4, 1, 11, 30, 0), _dd(2025, 4, 1)),
+    (4, 1002, 502, 14, 4, 2, 0, _d(2025, 4, 1, 11, 30, 0), _dd(2025, 4, 1)),
+    (5, 1003, 503, 21, 5, 1, 1, _d(2025, 4, 1, 14, 0, 0), _dd(2025, 4, 1)),
 ]
 
 
@@ -205,7 +207,7 @@ def test_order_items_ri_check(spark, tmp_path):
     products_schema = StructType([StructField("product_id", IntegerType(), False)])
 
     orders_df = spark.createDataFrame([(1001,), (1002,), (1003,)], schema=orders_schema)
-    products_df = spark.createDataFrame([(1,), (2,), (3,), (4,), (5,)], schema=products_schema)
+    spark.createDataFrame([(1,), (2,), (3,), (4,), (5,)], schema=products_schema)
 
     # Add one orphan: order_id=9999 has no matching order
     orphan_item = (
