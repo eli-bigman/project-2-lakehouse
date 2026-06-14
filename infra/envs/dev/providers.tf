@@ -22,8 +22,9 @@ terraform {
 }
 
 provider "aws" {
-  region  = "eu-west-1"
-  profile = "sandbox-lakehouse-dev"
+  region = "eu-west-1"
+  # profile omitted — CI uses AWS_ACCESS_KEY_ID/SECRET/SESSION_TOKEN env vars (OIDC).
+  # Locally: export AWS_PROFILE=sandbox-lakehouse-dev before running terraform.
 
   # Default tags applied to all resources — satisfies tagging ADR.
   default_tags {

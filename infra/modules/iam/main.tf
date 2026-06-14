@@ -491,15 +491,14 @@ data "aws_iam_policy_document" "gha_deploy_trust" {
     }
 
     # Explicit allowlist — no wildcards (ADR-013).
-    # Two sub claim formats:
-    #   ref:...   — direct branch push (no environment block in workflow)
-    #   environment:dev — workflow uses `environment: dev` (changes the OIDC sub)
+    # Only direct branch pushes to main are trusted.
+    # The deploy workflow does NOT use an `environment:` block so the sub is always
+    # the ref form. This keeps the trust surface minimal.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
         "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
-        "repo:${var.github_org}/${var.github_repo}:environment:dev",
       ]
     }
   }
