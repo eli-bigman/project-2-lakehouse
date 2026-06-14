@@ -490,13 +490,17 @@ data "aws_iam_policy_document" "gha_deploy_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # StringEquals (not StringLike) — no wildcards are needed; StringLike would
-    # allow accidental broadening if this value were later parameterised with *.
-    # Scoped to the specific repo + main branch only (ADR-013).
+    # Explicit allowlist — no wildcards (ADR-013).
+    # Two sub claim formats:
+    #   ref:...   — direct branch push (no environment block in workflow)
+    #   environment:dev — workflow uses `environment: dev` (changes the OIDC sub)
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
+      values = [
+        "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_org}/${var.github_repo}:environment:dev",
+      ]
     }
   }
 }
