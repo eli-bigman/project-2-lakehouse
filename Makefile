@@ -19,13 +19,13 @@ test-integration:
 	pytest tests/integration/ -v
 
 plan:
-	cd infra/envs/dev && AWS_PROFILE=personal terraform plan -var-file=dev.tfvars
+	cd infra/envs/dev && AWS_PROFILE=sandbox-lakehouse-dev terraform plan -var-file=dev.tfvars
 
 apply:
-	cd infra/envs/dev && AWS_PROFILE=personal terraform apply -var-file=dev.tfvars -auto-approve
+	cd infra/envs/dev && AWS_PROFILE=sandbox-lakehouse-dev terraform apply -var-file=dev.tfvars -auto-approve
 
 destroy:
-	cd infra/envs/dev && AWS_PROFILE=personal terraform destroy -var-file=dev.tfvars -var="protect_stateful=false" -auto-approve
+	cd infra/envs/dev && AWS_PROFILE=sandbox-lakehouse-dev terraform destroy -var-file=dev.tfvars -var="protect_stateful=false" -auto-approve
 
 package:
 	pip wheel --no-deps -w dist/ .

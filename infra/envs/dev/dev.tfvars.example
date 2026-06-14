@@ -11,5 +11,5 @@
 account_id       = "647594457599"
 alert_email      = "your-email@example.com"
 github_org       = "eli-bigman"
-github_repo      = "ecom-lakehouse"
+github_repo      = "project-2-lakehouse"
 protect_stateful = true

@@ -23,7 +23,22 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform apply (dev)
+        working-directory: infra/envs/dev
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_github_org: eli-bigman
+          TF_VAR_github_repo: project-2-lakehouse
+        run: |
+          terraform init
+          terraform apply -auto-approve
 
       - name: Install deps
         run: pip install -e ".[dev]"
@@ -36,21 +51,6 @@ jobs:
           aws s3 cp dist/*.whl s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/wheels/lakehouse-latest.whl
           aws s3 cp src/glue_jobs/ingest.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/ingest.py
           aws s3 cp src/glue_jobs/optimize.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/optimize.py
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.6.0"
-
-      - name: Terraform apply (dev)
-        working-directory: infra/envs/dev
-        env:
-          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_github_org: eli-bigman
-          TF_VAR_github_repo: ecom-lakehouse
-        run: |
-          terraform init
-          terraform apply -auto-approve
 
       - name: Smoke test (trigger SF execution)
         run: python scripts/smoke_test.py

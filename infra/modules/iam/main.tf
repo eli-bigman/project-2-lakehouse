@@ -481,15 +481,18 @@ data "aws_iam_policy_document" "gha_deploy_trust" {
 
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
-    # Restrict to the specific repo and main branch.
+    # aud must be sts.amazonaws.com (GitHub OIDC default).
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
 
+    # StringEquals (not StringLike) — no wildcards are needed; StringLike would
+    # allow accidental broadening if this value were later parameterised with *.
+    # Scoped to the specific repo + main branch only (ADR-013).
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
       values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
     }
@@ -507,11 +510,48 @@ resource "aws_iam_role" "gha_deploy" {
   }
 }
 
-# Terraform needs broad access to create/update/delete all resource types.
-# In prod, consider replacing with a tightly scoped policy post-stabilisation.
+# AdministratorAccess is used in DEV because Terraform must create IAM roles,
+# policies, KMS keys, and every other resource type in this stack — a fully
+# scoped policy would mirror AdministratorAccess minus IAM user/key creation.
+# PROD HARDENING PATH: replace with a customer-managed policy that lists only
+# the ~15 services Terraform touches, and attach a PermissionsBoundary to every
+# IAM role Terraform creates (prevents privilege escalation even with broad
+# iam:CreateRole).  See: https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html
 resource "aws_iam_role_policy_attachment" "gha_deploy_admin" {
   role       = aws_iam_role.gha_deploy.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+# Explicit Deny overlay — blocks lateral-movement actions that Terraform never
+# needs, even if AdministratorAccess is attached.  A Deny always wins over Allow.
+#
+# Blocked actions:
+#   iam:CreateUser / CreateLoginProfile / CreateAccessKey — Terraform manages
+#     roles, not IAM users; no long-lived credentials should ever be created by CI.
+#   iam:UpdateAccountPasswordPolicy — no reason for a deploy role to touch this.
+#   organizations:* — prevents account-level privilege escalation.
+data "aws_iam_policy_document" "gha_deploy_deny_lateral_movement" {
+  statement {
+    sid    = "DenyLateralMovement"
+    effect = "Deny"
+    actions = [
+      "iam:CreateUser",
+      "iam:CreateLoginProfile",
+      "iam:UpdateLoginProfile",
+      "iam:CreateAccessKey",
+      "iam:CreateVirtualMFADevice",
+      "iam:DeactivateMFADevice",
+      "iam:UpdateAccountPasswordPolicy",
+      "organizations:*",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_deploy_deny_lateral_movement" {
+  name   = "deny-lateral-movement"
+  role   = aws_iam_role.gha_deploy.id
+  policy = data.aws_iam_policy_document.gha_deploy_deny_lateral_movement.json
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
