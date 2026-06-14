@@ -14,11 +14,14 @@ Rule structure:
     name      — short code (P1, O1, I1 …) for ledger/log references
     column    — primary column the rule validates (for documentation; may
                 be "multiple" for cross-column rules)
-    predicate — a PySpark Column expression that evaluates to True for VALID rows
+    predicate — a zero-argument callable returning a PySpark Column expression
+                (evaluated lazily so importing this module does not require
+                an active SparkContext)
     reason    — human-readable string written to the reject_reason column
     severity  — "ERROR" (quarantine) | "WARN" (log only, future use)
 """
 
+import logging
 from collections import namedtuple
 from functools import reduce as py_reduce
 from typing import List, Tuple
@@ -45,7 +48,7 @@ PRODUCT_RULES: List[Rule] = [
     Rule(
         name="P1",
         column="product_id",
-        predicate=F.col("product_id").isNotNull() & (F.col("product_id") > 0),
+        predicate=lambda: F.col("product_id").isNotNull() & (F.col("product_id") > 0),
         reason="P1: product_id is null or non-positive",
         severity="ERROR",
     ),
@@ -55,7 +58,7 @@ PRODUCT_RULES: List[Rule] = [
     Rule(
         name="P3",
         column="department_id",
-        predicate=F.col("department_id").isNotNull(),
+        predicate=lambda: F.col("department_id").isNotNull(),
         reason="P3: department_id is null",
         severity="ERROR",
     ),
@@ -64,7 +67,7 @@ PRODUCT_RULES: List[Rule] = [
     Rule(
         name="P4",
         column="department",
-        predicate=F.col("department").isin(list(VALID_DEPARTMENTS)),
+        predicate=lambda: F.col("department").isin(list(VALID_DEPARTMENTS)),
         reason="P4: department not in allowed set (Books/Sports/Toys/Home/Clothing/Electronics)",
         severity="ERROR",
     ),
@@ -72,7 +75,7 @@ PRODUCT_RULES: List[Rule] = [
     Rule(
         name="P5",
         column="product_name",
-        predicate=F.col("product_name").isNotNull() & (F.trim(F.col("product_name")) != ""),
+        predicate=lambda: F.col("product_name").isNotNull() & (F.trim(F.col("product_name")) != ""),
         reason="P5: product_name is null or blank",
         severity="ERROR",
     ),
@@ -87,7 +90,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O1",
         column="order_id",
-        predicate=F.col("order_id").isNotNull() & (F.col("order_id") > 0),
+        predicate=lambda: F.col("order_id").isNotNull() & (F.col("order_id") > 0),
         reason="O1: order_id is null or non-positive",
         severity="ERROR",
     ),
@@ -95,7 +98,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O3",
         column="order_num",
-        predicate=F.col("order_num").isNotNull(),
+        predicate=lambda: F.col("order_num").isNotNull(),
         reason="O3: order_num is null",
         severity="ERROR",
     ),
@@ -103,7 +106,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O4",
         column="user_id",
-        predicate=F.col("user_id").isNotNull(),
+        predicate=lambda: F.col("user_id").isNotNull(),
         reason="O4: user_id is null",
         severity="ERROR",
     ),
@@ -114,7 +117,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O5",
         column="order_timestamp",
-        predicate=(
+        predicate=lambda: (
             F.col("order_timestamp").isNotNull()
             & (F.col("order_timestamp") <= F.current_timestamp())
             & (F.col("order_timestamp") >= F.lit("2020-01-01").cast("timestamp"))
@@ -128,7 +131,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O6",
         column="total_amount",
-        predicate=(
+        predicate=lambda: (
             F.col("total_amount").isNotNull()
             & (F.col("total_amount") >= 0)
             & (F.col("total_amount") <= 1_000_000)
@@ -143,7 +146,7 @@ ORDER_RULES: List[Rule] = [
     Rule(
         name="O7",
         column="order_date",
-        predicate=(
+        predicate=lambda: (
             F.col("order_date").isNotNull()
             & (F.col("order_date") == F.to_date(F.col("order_timestamp")))
         ),
@@ -161,7 +164,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I1",
         column="id",
-        predicate=F.col("id").isNotNull() & (F.col("id") > 0),
+        predicate=lambda: F.col("id").isNotNull() & (F.col("id") > 0),
         reason="I1: id is null or non-positive",
         severity="ERROR",
     ),
@@ -171,7 +174,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I2",
         column="order_id",
-        predicate=F.col("order_id").isNotNull(),
+        predicate=lambda: F.col("order_id").isNotNull(),
         reason="I2: order_id is null",
         severity="ERROR",
     ),
@@ -180,7 +183,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I3",
         column="product_id",
-        predicate=F.col("product_id").isNotNull(),
+        predicate=lambda: F.col("product_id").isNotNull(),
         reason="I3: product_id is null",
         severity="ERROR",
     ),
@@ -188,7 +191,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I4",
         column="reordered",
-        predicate=F.col("reordered").isin(0, 1),
+        predicate=lambda: F.col("reordered").isin(0, 1),
         reason="I4: reordered must be 0 or 1",
         severity="ERROR",
     ),
@@ -196,7 +199,8 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I5",
         column="add_to_cart_order",
-        predicate=F.col("add_to_cart_order").isNotNull() & (F.col("add_to_cart_order") >= 1),
+        predicate=lambda: F.col("add_to_cart_order").isNotNull()
+        & (F.col("add_to_cart_order") >= 1),
         reason="I5: add_to_cart_order must be >= 1",
         severity="ERROR",
     ),
@@ -206,7 +210,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I6",
         column="days_since_prior_order",
-        predicate=(
+        predicate=lambda: (
             F.col("days_since_prior_order").isNull()
             | ((F.col("days_since_prior_order") >= 0) & (F.col("days_since_prior_order") <= 365))
         ),
@@ -253,8 +257,9 @@ def apply_rules(df: DataFrame, rules: List[Rule]) -> Tuple[DataFrame, DataFrame]
     for rule in rules:
         flag_col = f"_rule_{rule.name}"
         flag_cols.append(flag_col)
-        # True if the row PASSES the rule; False if it fails
-        df = df.withColumn(flag_col, rule.predicate)
+        # True if the row PASSES the rule; False if it fails.
+        # rule.predicate is a callable — invoke it now that a SparkContext is active.
+        df = df.withColumn(flag_col, rule.predicate())
 
     # A row is valid if every rule flag is True.
     # Use functools.reduce (py_reduce) — NOT pyspark.sql.functions.reduce,
@@ -328,9 +333,6 @@ def referential_integrity(
         # Keep only rows whose product_id matched
         df = df.join(dim_products, on="product_id", how="inner")
     else:
-        # dim_products not yet loaded — skip RI check for this run
-        import logging
-
         logging.getLogger(__name__).warning(
             "referential_integrity: dim_products Delta table not found at %s; "
             "skipping product_id FK check",
@@ -349,8 +351,6 @@ def referential_integrity(
         # Keep only rows whose order_id matched
         df = df.join(fct_orders, on="order_id", how="inner")
     else:
-        import logging
-
         logging.getLogger(__name__).warning(
             "referential_integrity: fct_orders Delta table not found at %s; "
             "skipping order_id FK check",
