@@ -5,7 +5,7 @@
 #               satisfying the project-wide tagging requirement.
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.10.0"
 
   required_providers {
     aws = {
@@ -22,8 +22,8 @@ terraform {
 }
 
 provider "aws" {
-  region  = "us-east-1"
-  profile = "personal"
+  region  = "eu-west-1"
+  profile = "sandbox-lakehouse-dev"
 
   # Default tags applied to all resources — satisfies tagging ADR.
   default_tags {

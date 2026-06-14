@@ -33,12 +33,10 @@
 
 terraform {
   backend "s3" {
-    bucket         = "ecom-lakehouse-tf-state-647594457599"
+    bucket         = "ecom-lakehouse-tf-state-970547336735"
     key            = "env/dev/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "eu-west-1"
     dynamodb_table = "ecom-lakehouse-tf-locks"
     encrypt        = true
-    # profile is read from the provider block — backend uses AWS_PROFILE env var.
-    # Set: export AWS_PROFILE=personal (or pass -backend-config=profile=personal).
   }
 }

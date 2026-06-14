@@ -13,6 +13,8 @@
 #   c) Accept the risk in dev and use CMK in prod.
 # This is documented rather than silently worked around.
 
+data "aws_region" "current" {}
+
 locals {
   # Use alias/aws/sns when no CMK is configured (dev).
   sns_kms_key = var.kms_key_arn != "" ? var.kms_key_arn : "alias/aws/sns"
@@ -163,7 +165,7 @@ resource "aws_cloudwatch_metric_alarm" "stepfunctions_failed" {
 
   dimensions = {
     # Exact ARN — wildcards cause the alarm to never fire (CloudWatch matches literally).
-    StateMachineArn = "arn:aws:states:us-east-1:${var.account_id}:stateMachine:${var.state_machine_name}"
+    StateMachineArn = "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.state_machine_name}"
   }
 
   alarm_actions = [aws_sns_topic.alerts.arn]
@@ -194,12 +196,12 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
           view    = "timeSeries"
           stacked = false
           metrics = [
-            ["AWS/States", "ExecutionsStarted", "StateMachineArn", "arn:aws:states:us-east-1:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Started" }],
-            ["AWS/States", "ExecutionsSucceeded", "StateMachineArn", "arn:aws:states:us-east-1:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Succeeded" }],
-            ["AWS/States", "ExecutionsFailed", "StateMachineArn", "arn:aws:states:us-east-1:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Failed" }]
+            ["AWS/States", "ExecutionsStarted", "StateMachineArn", "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Started" }],
+            ["AWS/States", "ExecutionsSucceeded", "StateMachineArn", "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Succeeded" }],
+            ["AWS/States", "ExecutionsFailed", "StateMachineArn", "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.state_machine_name}", { "stat" : "Sum", "period" : 300, "label" : "Failed" }]
           ]
           period = 300
-          region = "us-east-1"
+          region = data.aws_region.current.name
         }
       },
       {
@@ -217,7 +219,7 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
             for job in var.glue_job_names : ["Glue", "glue.driver.ExecutorRunTime", "JobName", job, "Type", "gauge", { "stat" : "Sum", "period" : 300 }]
           ]
           period = 300
-          region = "us-east-1"
+          region = data.aws_region.current.name
         }
       },
       {
@@ -229,7 +231,7 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
         properties = {
           title = "Pipeline Alarms"
           alarms = [
-            "arn:aws:cloudwatch:us-east-1:${var.account_id}:alarm:${var.prefix}-sf-failed-${var.env}"
+            "arn:aws:cloudwatch:${data.aws_region.current.name}:${var.account_id}:alarm:${var.prefix}-sf-failed-${var.env}"
           ]
         }
       }
