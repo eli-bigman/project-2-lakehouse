@@ -104,12 +104,13 @@ rationale. A few of the non-obvious ones:
 
 **Lambda for normalization, not Glue Python-shell.** Glue Python-shell costs a minimum
 of one DPU-minute per invocation (~$0.44/DPU-hour). A Lambda function that converts a
-1 MB Excel file to Parquet takes under a second and costs a fraction of a cent. The brief
-requires Glue + Spark for ETL; it does not constrain the normalization runtime.
+1 MB Excel file to Parquet takes under a second and costs a fraction of a cent. Lambda is
+the right tool for fast, stateless format conversion; Glue + Spark handles the heavy
+distributed transformation work.
 
-**One Glue job per dataset, not one job for all three.** The brief explicitly requires
-"a Glue Job for each dataset." Per-dataset jobs also give cleaner failure isolation —
-a bad orders file does not prevent products from loading.
+**One Glue job per dataset, not one job for all three.** Per-dataset jobs give granular
+failure isolation and independent retry — a bad orders file does not prevent products from
+loading, and each dataset can be reprocessed without touching the others.
 
 **Tables are unpartitioned.** At the current volume, physical date partitioning creates
 KB-scale partitions — smaller than the Delta log overhead. Z-Ordering on `order_date`
