@@ -47,9 +47,13 @@ jobs:
 
       - name: Upload artifacts to S3
         run: |
-          aws s3 cp dist/*.whl s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/wheels/lakehouse-latest.whl
-          aws s3 cp src/glue_jobs/ingest.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/ingest.py
-          aws s3 cp src/glue_jobs/optimize.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/optimize.py
+          aws s3 cp dist/*.whl s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/wheels/lakehouse-latest.whl --sse aws:kms
+          aws s3 cp src/glue_jobs/ingest.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/ingest.py --sse aws:kms
+          aws s3 cp src/glue_jobs/optimize.py s3://${{ secrets.S3_ARTIFACTS_BUCKET }}/scripts/optimize.py --sse aws:kms
 
       - name: Smoke test (trigger SF execution)
+        env:
+          AWS_REGION: eu-west-1
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          S3_RAW_BUCKET: ecom-lakehouse-raw-dev
         run: python scripts/smoke_test.py
