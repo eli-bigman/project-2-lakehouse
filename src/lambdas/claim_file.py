@@ -27,8 +27,8 @@ from typing import Any, Dict
 
 import boto3
 
-from lakehouse.ledger import LedgerClient
 from lakehouse.config import PROJECT_PREFIX
+from lakehouse.ledger import LedgerClient
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -78,7 +78,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     logger.info(
         "Claiming file: bucket=%s key=%s dataset=%s batch_id=%s",
-        raw_bucket, file_key, dataset, batch_id,
+        raw_bucket,
+        file_key,
+        dataset,
+        batch_id,
     )
 
     # ------------------------------------------------------------------
@@ -120,9 +123,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     )
 
     if not claimed:
-        logger.info(
-            "File already processed — returning already_processed=True for %s", file_key
-        )
+        logger.info("File already processed — returning already_processed=True for %s", file_key)
         return {"already_processed": True}
 
     logger.info("File claimed successfully: file_key=%s batch_id=%s", file_key, batch_id)

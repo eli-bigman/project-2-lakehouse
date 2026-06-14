@@ -26,9 +26,9 @@ from typing import List, Tuple
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, SparkSession
 
-from lakehouse.schemas import VALID_DEPARTMENTS
-from lakehouse.config import DATASET_TO_TABLE
 from lakehouse import io as lake_io
+from lakehouse.config import DATASET_TO_TABLE
+from lakehouse.schemas import VALID_DEPARTMENTS
 
 # ---------------------------------------------------------------------------
 # Rule namedtuple
@@ -72,8 +72,7 @@ PRODUCT_RULES: List[Rule] = [
     Rule(
         name="P5",
         column="product_name",
-        predicate=F.col("product_name").isNotNull()
-        & (F.trim(F.col("product_name")) != ""),
+        predicate=F.col("product_name").isNotNull() & (F.trim(F.col("product_name")) != ""),
         reason="P5: product_name is null or blank",
         severity="ERROR",
     ),
@@ -197,8 +196,7 @@ ORDER_ITEM_RULES: List[Rule] = [
     Rule(
         name="I5",
         column="add_to_cart_order",
-        predicate=F.col("add_to_cart_order").isNotNull()
-        & (F.col("add_to_cart_order") >= 1),
+        predicate=F.col("add_to_cart_order").isNotNull() & (F.col("add_to_cart_order") >= 1),
         reason="I5: add_to_cart_order must be >= 1",
         severity="ERROR",
     ),
@@ -210,10 +208,7 @@ ORDER_ITEM_RULES: List[Rule] = [
         column="days_since_prior_order",
         predicate=(
             F.col("days_since_prior_order").isNull()
-            | (
-                (F.col("days_since_prior_order") >= 0)
-                & (F.col("days_since_prior_order") <= 365)
-            )
+            | ((F.col("days_since_prior_order") >= 0) & (F.col("days_since_prior_order") <= 365))
         ),
         reason="I6: days_since_prior_order is out of range [0, 365]",
         severity="ERROR",
@@ -230,9 +225,7 @@ RULES = {
 }
 
 
-def apply_rules(
-    df: DataFrame, rules: List[Rule]
-) -> Tuple[DataFrame, DataFrame]:
+def apply_rules(df: DataFrame, rules: List[Rule]) -> Tuple[DataFrame, DataFrame]:
     """
     Apply a list of Rule objects to a DataFrame.
 
@@ -271,23 +264,14 @@ def apply_rules(
     # Build the reject_reason string: concatenate reason strings for all failed rules.
     # F.when returns null when the condition is False — concat_ws skips nulls
     # automatically, so stray "; " separators are avoided without coalesce.
-    reason_exprs = [
-        F.when(~F.col(f"_rule_{rule.name}"), F.lit(rule.reason))
-        for rule in rules
-    ]
+    reason_exprs = [F.when(~F.col(f"_rule_{rule.name}"), F.lit(rule.reason)) for rule in rules]
     reject_reason_expr = F.concat_ws("; ", *reason_exprs)
 
     df = df.withColumn("_all_pass", all_pass_expr)
     df = df.withColumn("reject_reason", reject_reason_expr)
 
-    valid_df = (
-        df.filter(F.col("_all_pass"))
-        .drop(*flag_cols, "_all_pass", "reject_reason")
-    )
-    rejected_df = (
-        df.filter(~F.col("_all_pass"))
-        .drop(*flag_cols, "_all_pass")
-    )
+    valid_df = df.filter(F.col("_all_pass")).drop(*flag_cols, "_all_pass", "reject_reason")
+    rejected_df = df.filter(~F.col("_all_pass")).drop(*flag_cols, "_all_pass")
 
     return valid_df, rejected_df
 
@@ -336,12 +320,9 @@ def referential_integrity(
     products_path = f"s3://{dwh_bucket}/{DATASET_TO_TABLE['products']}/"
     if lake_io.delta_table_exists(spark, products_path):
         dim_products = spark.read.format("delta").load(products_path).select("product_id")
-        product_orphans = (
-            df.join(dim_products, on="product_id", how="left_anti")
-            .withColumn(
-                "reject_reason",
-                F.lit("RI: product_id not found in dim_products"),
-            )
+        product_orphans = df.join(dim_products, on="product_id", how="left_anti").withColumn(
+            "reject_reason",
+            F.lit("RI: product_id not found in dim_products"),
         )
         orphan_dfs.append(product_orphans)
         # Keep only rows whose product_id matched
@@ -349,6 +330,7 @@ def referential_integrity(
     else:
         # dim_products not yet loaded — skip RI check for this run
         import logging
+
         logging.getLogger(__name__).warning(
             "referential_integrity: dim_products Delta table not found at %s; "
             "skipping product_id FK check",
@@ -359,18 +341,16 @@ def referential_integrity(
     orders_path = f"s3://{dwh_bucket}/{DATASET_TO_TABLE['orders']}/"
     if lake_io.delta_table_exists(spark, orders_path):
         fct_orders = spark.read.format("delta").load(orders_path).select("order_id")
-        order_orphans = (
-            df.join(fct_orders, on="order_id", how="left_anti")
-            .withColumn(
-                "reject_reason",
-                F.lit("RI: order_id not found in fct_orders"),
-            )
+        order_orphans = df.join(fct_orders, on="order_id", how="left_anti").withColumn(
+            "reject_reason",
+            F.lit("RI: order_id not found in fct_orders"),
         )
         orphan_dfs.append(order_orphans)
         # Keep only rows whose order_id matched
         df = df.join(fct_orders, on="order_id", how="inner")
     else:
         import logging
+
         logging.getLogger(__name__).warning(
             "referential_integrity: fct_orders Delta table not found at %s; "
             "skipping order_id FK check",

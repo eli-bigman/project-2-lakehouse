@@ -21,8 +21,8 @@ MERGE predicate hint for fact tables:
 DynamicFrames are PROHIBITED (ADR-019) — this module uses DataFrames + DeltaTable API.
 """
 
-from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
+from pyspark.sql import DataFrame, SparkSession
 
 
 def upsert(
@@ -58,6 +58,7 @@ def upsert(
         dict with keys: {"action": "created"|"merged", "target_path": str}
     """
     from delta.tables import DeltaTable
+
     from lakehouse import io as lake_io
 
     if not lake_io.delta_table_exists(spark, target_path):
@@ -84,8 +85,7 @@ def upsert(
         max_date = date_bounds["max_date"]
         if min_date is not None and max_date is not None:
             merge_condition += (
-                f" AND target.order_date >= '{min_date}'"
-                f" AND target.order_date <= '{max_date}'"
+                f" AND target.order_date >= '{min_date}'" f" AND target.order_date <= '{max_date}'"
             )
 
     (
@@ -130,12 +130,11 @@ def run_optimize(
         zorder_cols: List of column names for ZORDER BY clause.
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     zorder_clause = ", ".join(zorder_cols)
-    optimize_sql = (
-        f"OPTIMIZE delta.`{table_path}` ZORDER BY ({zorder_clause})"
-    )
+    optimize_sql = f"OPTIMIZE delta.`{table_path}` ZORDER BY ({zorder_clause})"
     logger.info("Running OPTIMIZE: %s", optimize_sql)
 
     result = spark.sql(optimize_sql)
@@ -170,6 +169,7 @@ def run_vacuum(
         retain_hours: Retention window in hours (default 168 = 7 days).
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     vacuum_sql = f"VACUUM delta.`{table_path}` RETAIN {retain_hours} HOURS"

@@ -111,9 +111,7 @@ def render() -> None:
         total = len(all_runs)
         succeeded = sum(1 for r in all_runs if r.get("status") == "SUCCEEDED")
         failed = sum(1 for r in all_runs if r.get("status") == "FAILED")
-        last_run_ts = (
-            max((r.get("ingest_ts", "") for r in all_runs), default="—")
-        )
+        last_run_ts = max((r.get("ingest_ts", "") for r in all_runs), default="—")
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Runs", total)

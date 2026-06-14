@@ -13,6 +13,7 @@ Metrics computed here (compute_metrics) feed:
 import json
 import logging
 import sys
+
 import boto3
 from botocore.exceptions import ClientError
 
@@ -104,6 +105,7 @@ def get_logger(name: str) -> logging.Logger:
 # Metrics computation
 # ---------------------------------------------------------------------------
 
+
 def compute_metrics(
     df_in,
     df_valid,
@@ -157,6 +159,7 @@ def compute_metrics(
 # Quality gate
 # ---------------------------------------------------------------------------
 
+
 def gate(metrics: dict, threshold: float) -> None:
     """
     Raise ValueError if the batch reject_rate exceeds the allowed threshold.
@@ -191,6 +194,7 @@ def gate(metrics: dict, threshold: float) -> None:
 # ---------------------------------------------------------------------------
 # CloudWatch custom metrics
 # ---------------------------------------------------------------------------
+
 
 def emit_cloudwatch_metric(
     namespace: str,

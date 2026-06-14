@@ -19,14 +19,14 @@ EXPECTED_COLUMNS reflects the *raw* headers so the Lambda can gate bad files ear
 """
 
 from pyspark.sql.types import (
-    StructType,
-    StructField,
+    DateType,
+    DecimalType,
     IntegerType,
     LongType,
     StringType,
+    StructField,
+    StructType,
     TimestampType,
-    DateType,
-    DecimalType,
 )
 
 # ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ AUDIT_FIELDS = [
 # detect a failed cast by testing for null on those fields.
 DIM_PRODUCTS_SCHEMA = StructType(
     [
-        StructField("product_id", IntegerType(), nullable=False),    # PK
+        StructField("product_id", IntegerType(), nullable=False),  # PK
         StructField("department_id", IntegerType(), nullable=False),
         StructField("department", StringType(), nullable=False),
         StructField("product_name", StringType(), nullable=False),
@@ -74,11 +74,11 @@ DIM_PRODUCTS_SCHEMA = StructType(
 FCT_ORDERS_SCHEMA = StructType(
     [
         StructField("order_num", IntegerType(), nullable=False),
-        StructField("order_id", LongType(), nullable=False),          # PK / merge key
+        StructField("order_id", LongType(), nullable=False),  # PK / merge key
         StructField("user_id", LongType(), nullable=False),
         StructField("order_timestamp", TimestampType(), nullable=False),
         StructField("total_amount", DecimalType(10, 2), nullable=False),
-        StructField("order_date", DateType(), nullable=False),         # derived col; Z-ORDER key
+        StructField("order_date", DateType(), nullable=False),  # derived col; Z-ORDER key
     ]
     + AUDIT_FIELDS
 )
@@ -93,16 +93,16 @@ FCT_ORDERS_SCHEMA = StructType(
 # ---------------------------------------------------------------------------
 FCT_ORDER_ITEMS_SCHEMA = StructType(
     [
-        StructField("id", LongType(), nullable=False),                 # PK / merge key
-        StructField("order_id", LongType(), nullable=False),           # FK → fct_orders
+        StructField("id", LongType(), nullable=False),  # PK / merge key
+        StructField("order_id", LongType(), nullable=False),  # FK → fct_orders
         StructField("user_id", LongType(), nullable=False),
         # nullable=True: days_since_prior_order is null on a customer's first order
         StructField("days_since_prior_order", IntegerType(), nullable=True),
-        StructField("product_id", IntegerType(), nullable=False),      # FK → dim_products
+        StructField("product_id", IntegerType(), nullable=False),  # FK → dim_products
         StructField("add_to_cart_order", IntegerType(), nullable=False),
         StructField("reordered", IntegerType(), nullable=False),
         StructField("order_timestamp", TimestampType(), nullable=False),
-        StructField("order_date", DateType(), nullable=False),          # derived col; Z-ORDER key
+        StructField("order_date", DateType(), nullable=False),  # derived col; Z-ORDER key
     ]
     + AUDIT_FIELDS
 )

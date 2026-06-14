@@ -32,13 +32,13 @@ from pyspark.sql.types import (
     TimestampType,
 )
 
+from lakehouse.logging_utils import compute_metrics, gate
 from lakehouse.validation import (
     ORDER_ITEM_RULES,
     ORDER_RULES,
     PRODUCT_RULES,
     apply_rules,
 )
-from lakehouse.logging_utils import compute_metrics, gate
 
 # ---------------------------------------------------------------------------
 # Schema helpers — post-enforce_types / post-derive shapes for validation
@@ -172,9 +172,7 @@ class TestOrderValidation:
     def test_valid_orders_pass(self, spark, sample_orders_df):
         """3 clean order rows → all valid, none rejected."""
         # sample_orders_df is source-shaped — add derived order_date for validation
-        df_with_order_date = sample_orders_df.withColumn(
-            "order_date", F.to_date("order_timestamp")
-        )
+        df_with_order_date = sample_orders_df.withColumn("order_date", F.to_date("order_timestamp"))
         valid_df, rejected_df = apply_rules(df_with_order_date, ORDER_RULES)
 
         assert valid_df.count() == 3
@@ -183,8 +181,14 @@ class TestOrderValidation:
     def test_future_timestamp_quarantined(self, spark):
         """Rule O5: order_timestamp in 2099 → quarantine."""
         data = [
-            (1, 1001, 501, datetime.datetime(2099, 1, 1, 0, 0, 0),
-             Decimal("50.00"), datetime.date(2099, 1, 1))
+            (
+                1,
+                1001,
+                501,
+                datetime.datetime(2099, 1, 1, 0, 0, 0),
+                Decimal("50.00"),
+                datetime.date(2099, 1, 1),
+            )
         ]
         df = _make_orders(spark, data)
 
@@ -281,9 +285,7 @@ class TestRejectRateGate:
         )
 
         # df_in = union of valid + rejected to represent the full pre-validation batch
-        df_in = valid_df.drop("reject_reason").union(
-            rejected_df.drop("reject_reason")
-        )
+        df_in = valid_df.drop("reject_reason").union(rejected_df.drop("reject_reason"))
         metrics = compute_metrics(df_in, valid_df, rejected_df)
 
         assert metrics["reject_rate"] > 0.05, "Test setup: reject_rate must exceed 5%"

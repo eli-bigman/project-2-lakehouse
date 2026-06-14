@@ -32,7 +32,6 @@ from pyspark.sql.types import (
 
 from lakehouse.transforms import dedup, derive, enforce_types
 
-
 # ---------------------------------------------------------------------------
 # enforce_types
 # ---------------------------------------------------------------------------

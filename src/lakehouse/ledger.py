@@ -58,12 +58,8 @@ class LedgerClient:
         """
         self.env = env
         self.dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-        self.ledger_table = self.dynamodb.Table(
-            f"ecom_lakehouse_ingestion_ledger_{env}"
-        )
-        self.watermarks_table = self.dynamodb.Table(
-            f"ecom_lakehouse_watermarks_{env}"
-        )
+        self.ledger_table = self.dynamodb.Table(f"ecom_lakehouse_ingestion_ledger_{env}")
+        self.watermarks_table = self.dynamodb.Table(f"ecom_lakehouse_watermarks_{env}")
 
     def _now_iso(self) -> str:
         """Return current UTC timestamp as ISO-8601 string."""
@@ -112,9 +108,7 @@ class LedgerClient:
         try:
             self.ledger_table.put_item(
                 Item=item,
-                ConditionExpression=(
-                    "attribute_not_exists(file_key) OR #s = :failed"
-                ),
+                ConditionExpression=("attribute_not_exists(file_key) OR #s = :failed"),
                 ExpressionAttributeNames={"#s": "status"},
                 ExpressionAttributeValues={":failed": "FAILED"},
             )
@@ -122,9 +116,7 @@ class LedgerClient:
             return True
         except ClientError as exc:
             if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                logger.info(
-                    "Ledger: %s already claimed/processed — skipping", file_key
-                )
+                logger.info("Ledger: %s already claimed/processed — skipping", file_key)
                 return False
             raise
 
@@ -138,9 +130,7 @@ class LedgerClient:
         """
         self.ledger_table.update_item(
             Key={"file_key": file_key},
-            UpdateExpression=(
-                "SET #s = :status, rows_in = :rows_in, normalized_at = :ts"
-            ),
+            UpdateExpression=("SET #s = :status, rows_in = :rows_in, normalized_at = :ts"),
             ExpressionAttributeNames={"#s": "status"},
             ExpressionAttributeValues={
                 ":status": "NORMALIZED",
@@ -201,9 +191,7 @@ class LedgerClient:
         """
         self.ledger_table.update_item(
             Key={"file_key": file_key},
-            UpdateExpression=(
-                "SET #s = :status, archive_uri = :uri, archived_at = :ts"
-            ),
+            UpdateExpression=("SET #s = :status, archive_uri = :uri, archived_at = :ts"),
             ExpressionAttributeNames={"#s": "status"},
             ExpressionAttributeValues={
                 ":status": "ARCHIVED",
@@ -229,9 +217,7 @@ class LedgerClient:
         truncated_msg = error_msg[:4000] if len(error_msg) > 4000 else error_msg
         self.ledger_table.update_item(
             Key={"file_key": file_key},
-            UpdateExpression=(
-                "SET #s = :status, error_msg = :msg, failed_at = :ts"
-            ),
+            UpdateExpression=("SET #s = :status, error_msg = :msg, failed_at = :ts"),
             ExpressionAttributeNames={"#s": "status"},
             ExpressionAttributeValues={
                 ":status": "FAILED",
@@ -267,9 +253,7 @@ class LedgerClient:
                 "updated_at": self._now_iso(),
             }
         )
-        logger.info(
-            "Watermark: updated %s → period=%s batch_id=%s", dataset, period, batch_id
-        )
+        logger.info("Watermark: updated %s → period=%s batch_id=%s", dataset, period, batch_id)
 
     def get_watermark(self, dataset: str) -> Optional[dict]:
         """

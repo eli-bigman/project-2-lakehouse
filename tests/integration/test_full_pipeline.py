@@ -211,26 +211,29 @@ def test_order_items_ri_check(spark, tmp_path):
 
     # Add one orphan: order_id=9999 has no matching order
     orphan_item = (
-        99, 9999, 501, 7, 1, 1, 0, datetime.datetime(2025, 4, 1), datetime.date(2025, 4, 1)
+        99,
+        9999,
+        501,
+        7,
+        1,
+        1,
+        0,
+        datetime.datetime(2025, 4, 1),
+        datetime.date(2025, 4, 1),
     )
     items_data = list(_CLEAN_ITEMS) + [orphan_item]
     items_df = spark.createDataFrame(items_data, schema=_ITEMS_SRC_SCHEMA)
 
     # Replicate referential_integrity anti-join logic directly
-    valid_after_order_check = (
-        items_df.join(orders_df, on="order_id", how="left_semi")
-    )
-    orphans = (
-        items_df.join(orders_df, on="order_id", how="left_anti")
-        .withColumn("reject_reason", F.lit("RI: order_id not found in fct_orders"))
+    valid_after_order_check = items_df.join(orders_df, on="order_id", how="left_semi")
+    orphans = items_df.join(orders_df, on="order_id", how="left_anti").withColumn(
+        "reject_reason", F.lit("RI: order_id not found in fct_orders")
     )
 
-    assert valid_after_order_check.count() == 5, (
-        f"Expected 5 valid items after RI check, got {valid_after_order_check.count()}"
-    )
-    assert orphans.count() == 1, (
-        f"Expected 1 orphan, got {orphans.count()}"
-    )
+    assert (
+        valid_after_order_check.count() == 5
+    ), f"Expected 5 valid items after RI check, got {valid_after_order_check.count()}"
+    assert orphans.count() == 1, f"Expected 1 orphan, got {orphans.count()}"
 
     orphan_id = orphans.select("id").first()["id"]
     assert orphan_id == 99, f"Expected orphan id=99, got {orphan_id}"

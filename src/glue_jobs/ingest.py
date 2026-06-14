@@ -30,13 +30,13 @@ import traceback
 
 from lakehouse import config
 from lakehouse import io as lake_io
+from lakehouse import logging_utils
+from lakehouse import merge as lake_merge
 from lakehouse import transforms
 from lakehouse import validation as val
-from lakehouse import merge as lake_merge
+from lakehouse.config import DATASET_TO_TABLE, MERGE_KEY
 from lakehouse.ledger import LedgerClient
-from lakehouse import logging_utils
 from lakehouse.schemas import SCHEMAS
-from lakehouse.config import MERGE_KEY, DATASET_TO_TABLE
 
 
 def parse_args(argv=None):
@@ -154,6 +154,7 @@ def main(argv=None):
 
         # Separate rows with cast failures from clean rows
         import pyspark.sql.functions as F
+
         df_cast_failed = df_typed.filter(F.col("_cast_failed")).drop("_cast_failed")
         df_cast_ok = df_typed.filter(~F.col("_cast_failed")).drop("_cast_failed")
         logger.info(
@@ -166,9 +167,7 @@ def main(argv=None):
         # Step 4: Derive order_date, audit columns, and _record_hash
         # ------------------------------------------------------------------
         logger.info("Step 4: Deriving audit columns and record hash")
-        df_derived = transforms.derive(
-            df_cast_ok, args.dataset, args.batch_id, args.source_file
-        )
+        df_derived = transforms.derive(df_cast_ok, args.dataset, args.batch_id, args.source_file)
 
         # ------------------------------------------------------------------
         # Step 5: Apply business-rule validation

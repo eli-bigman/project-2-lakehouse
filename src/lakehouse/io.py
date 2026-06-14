@@ -9,7 +9,7 @@ DynamicFrames are PROHIBITED (ADR-019) — this module uses native Spark
 DataFrames exclusively.
 """
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
 
 
@@ -141,13 +141,11 @@ def write_quarantine(
     Returns:
         Full S3 URI where rejected rows were written.
     """
-    quarantine_uri = (
-        f"s3://{quarantine_bucket}/{dataset}/batch_id={batch_id}/"
-    )
+    quarantine_uri = f"s3://{quarantine_bucket}/{dataset}/batch_id={batch_id}/"
     (
         df.coalesce(1)
         .write.format("parquet")
-        .mode("overwrite")   # idempotent: re-run overwrites previous quarantine drop
+        .mode("overwrite")  # idempotent: re-run overwrites previous quarantine drop
         .save(quarantine_uri)
     )
     return quarantine_uri
@@ -174,6 +172,8 @@ def delta_table_exists(spark: SparkSession, path: str) -> bool:
     Returns:
         True if a Delta log exists at path; False otherwise.
     """
-    from delta.tables import DeltaTable  # local import — delta not available at plan time
+    from delta.tables import (
+        DeltaTable,  # local import — delta not available at plan time
+    )
 
     return DeltaTable.isDeltaTable(spark, path)

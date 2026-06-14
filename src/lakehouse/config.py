@@ -73,10 +73,7 @@ DATASET_TO_TABLE = {
 # Pattern: s3://{dwh_bucket}/{table_name}/
 # Keys are SHORT dataset names for consistency with all other dicts.
 # ---------------------------------------------------------------------------
-TABLE_PATH = {
-    dataset: f"s3://{DWH_BUCKET}/{table}/"
-    for dataset, table in DATASET_TO_TABLE.items()
-}
+TABLE_PATH = {dataset: f"s3://{DWH_BUCKET}/{table}/" for dataset, table in DATASET_TO_TABLE.items()}
 
 # ---------------------------------------------------------------------------
 # Staging S3 prefix

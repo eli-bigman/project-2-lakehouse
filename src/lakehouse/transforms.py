@@ -15,7 +15,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, Window
 from pyspark.sql.types import StructType
 
-from lakehouse.schemas import SCHEMAS, BUSINESS_COLS
+from lakehouse.schemas import BUSINESS_COLS, SCHEMAS
 
 
 def enforce_types(df: DataFrame, dataset: str) -> DataFrame:
@@ -173,12 +173,9 @@ def dedup(df: DataFrame, merge_key: str) -> DataFrame:
     Returns:
         DataFrame with at most one row per merge_key value.
     """
-    window_spec = (
-        Window.partitionBy(merge_key)
-        .orderBy(
-            F.col("_ingest_ts").desc(),      # primary: most recent first
-            F.col("_record_hash").desc(),    # secondary: deterministic lexicographic tie-break
-        )
+    window_spec = Window.partitionBy(merge_key).orderBy(
+        F.col("_ingest_ts").desc(),  # primary: most recent first
+        F.col("_record_hash").desc(),  # secondary: deterministic lexicographic tie-break
     )
 
     # IMPORTANT: use row_number(), NOT rank().

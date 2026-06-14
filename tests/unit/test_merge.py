@@ -96,9 +96,9 @@ class TestUpsert:
         assert result.count() == 1, "Update must not create a duplicate row"
 
         new_amount = result.select("total_amount").first()["total_amount"]
-        assert float(new_amount) == pytest.approx(99.99), (
-            f"Expected updated total_amount=99.99, got {new_amount}"
-        )
+        assert float(new_amount) == pytest.approx(
+            99.99
+        ), f"Expected updated total_amount=99.99, got {new_amount}"
 
     def test_upsert_skips_identical_row(self, spark, tmp_delta_path):
         """
@@ -135,9 +135,7 @@ class TestUpsert:
         upsert(spark, df_new, target_path=tmp_delta_path, merge_key="order_id")
 
         result = spark.read.format("delta").load(tmp_delta_path)
-        assert result.count() == 2, (
-            f"Expected 2 rows after inserting new key, got {result.count()}"
-        )
+        assert result.count() == 2, f"Expected 2 rows after inserting new key, got {result.count()}"
 
         order_ids = sorted([row["order_id"] for row in result.select("order_id").collect()])
         assert order_ids == [1001, 1002], f"Expected order_ids [1001, 1002], got {order_ids}"

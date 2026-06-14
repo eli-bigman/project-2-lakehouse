@@ -42,7 +42,7 @@ s3_client = boto3.client("s3")
 def _parse_s3_uri(uri: str):
     """Split 's3://bucket/key' into (bucket, key)."""
     assert uri.startswith("s3://"), f"Not an S3 URI: {uri}"
-    parts = uri[len("s3://"):].split("/", 1)
+    parts = uri[len("s3://") :].split("/", 1)
     if len(parts) != 2:
         raise ValueError(f"Cannot parse S3 URI: {uri}")
     return parts[0], parts[1]
@@ -83,7 +83,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     logger.info(
         "Schema validation: dataset=%s batch_id=%s staging_uri=%s",
-        dataset, batch_id, staging_uri,
+        dataset,
+        batch_id,
+        staging_uri,
     )
 
     if dataset not in EXPECTED_COLUMNS:
@@ -104,9 +106,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         s3_client.download_file(bucket, key, local_path)
     except Exception as exc:
-        raise RuntimeError(
-            f"validate_schema: failed to download {staging_uri}: {exc}"
-        ) from exc
+        raise RuntimeError(f"validate_schema: failed to download {staging_uri}: {exc}") from exc
 
     # Use pyarrow.parquet.read_schema() — reads footer metadata only, not row groups.
     # This is O(1) in file size and very fast.
@@ -132,13 +132,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not schema_valid:
         logger.error(
             "Schema validation FAILED: dataset=%s missing_cols=%s",
-            dataset, missing_cols,
+            dataset,
+            missing_cols,
         )
     elif extra_cols:
         logger.warning(
             "Schema validation passed with extra columns: dataset=%s extra_cols=%s "
             "(they will be dropped by the Glue job)",
-            dataset, extra_cols,
+            dataset,
+            extra_cols,
         )
     else:
         logger.info("Schema validation PASSED: dataset=%s all columns present", dataset)

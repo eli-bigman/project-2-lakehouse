@@ -88,7 +88,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     logger.info(
         "Normalizing file: bucket=%s key=%s dataset=%s batch_id=%s",
-        raw_bucket, raw_key, dataset, batch_id,
+        raw_bucket,
+        raw_key,
+        dataset,
+        batch_id,
     )
 
     # Validate dataset is known
@@ -170,7 +173,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.warning(
             "normalize_to_parquet: dataset='%s' has unexpected extra columns %s — "
             "they will be dropped",
-            dataset, extra_cols,
+            dataset,
+            extra_cols,
         )
 
     # ------------------------------------------------------------------
@@ -206,7 +210,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     logger.info(
         "Normalization complete: dataset=%s rows_in=%d staging_uri=%s",
-        dataset, rows_in, staging_uri,
+        dataset,
+        rows_in,
+        staging_uri,
     )
 
     return {

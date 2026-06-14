@@ -21,23 +21,19 @@ VACUUM is run after OPTIMIZE to remove obsolete files outside the retention wind
 import argparse
 import sys
 
-from lakehouse import config, io as lake_io
-from lakehouse import merge as lake_merge
+from lakehouse import config
+from lakehouse import io as lake_io
 from lakehouse import logging_utils
+from lakehouse import merge as lake_merge
 from lakehouse.config import DATASET_LOAD_ORDER, DATASET_TO_TABLE, ZORDER_COLS
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(
-        description="ecom-lakehouse OPTIMIZE + VACUUM Glue job"
-    )
+    parser = argparse.ArgumentParser(description="ecom-lakehouse OPTIMIZE + VACUUM Glue job")
     parser.add_argument(
         "--dataset",
         default="all",
-        help=(
-            'Short dataset name to optimize, or "all" to optimize every table '
-            "(default: all)"
-        ),
+        help=('Short dataset name to optimize, or "all" to optimize every table ' "(default: all)"),
     )
     parser.add_argument(
         "--env",

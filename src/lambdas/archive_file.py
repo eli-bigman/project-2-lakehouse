@@ -77,7 +77,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     logger.info(
         "Archiving: s3://%s/%s → %s",
-        raw_bucket, file_key, archive_uri,
+        raw_bucket,
+        file_key,
+        archive_uri,
     )
 
     # ------------------------------------------------------------------
@@ -95,8 +97,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.info("Copy complete: %s", archive_uri)
     except Exception as exc:
         raise RuntimeError(
-            f"archive_file: failed to copy s3://{raw_bucket}/{file_key} "
-            f"to {archive_uri}: {exc}"
+            f"archive_file: failed to copy s3://{raw_bucket}/{file_key} " f"to {archive_uri}: {exc}"
         ) from exc
 
     # ------------------------------------------------------------------
@@ -114,7 +115,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.warning(
             "archive_file: failed to delete source key s3://%s/%s: %s "
             "(archive already written — continuing)",
-            raw_bucket, file_key, exc,
+            raw_bucket,
+            file_key,
+            exc,
         )
 
     # ------------------------------------------------------------------
@@ -123,7 +126,5 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     ledger = LedgerClient(env=env)
     ledger.mark_archived(file_key, archive_uri)
 
-    logger.info(
-        "Archive complete: file_key=%s archive_uri=%s", file_key, archive_uri
-    )
+    logger.info("Archive complete: file_key=%s archive_uri=%s", file_key, archive_uri)
     return {"archive_uri": archive_uri}
