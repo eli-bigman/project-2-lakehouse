@@ -38,8 +38,18 @@ def _status_badge(status: str) -> str:
     )
 
 
+def _is_not_found(exc: Exception) -> bool:
+    msg = str(exc)
+    return any(k in msg for k in (
+        "StateMachineDoesNotExist",
+        "ResourceNotFoundException",
+        "Requested resource not found",
+        "does not exist",
+    ))
+
+
 # ---------------------------------------------------------------------------
-# Render
+# Cached loaders — cleared when user clicks Refresh
 # ---------------------------------------------------------------------------
 
 
@@ -50,8 +60,7 @@ def _load_executions():
 
 @st.cache_data(ttl=60)
 def _load_ledger_stats():
-    runs = ledger_helper.get_recent_runs(n=200)
-    return runs
+    return ledger_helper.get_recent_runs(n=200)
 
 
 @st.cache_data(ttl=60)
@@ -70,7 +79,14 @@ def _load_metric(metric_name: str, dataset: str) -> pd.DataFrame:
 
 
 def render() -> None:
-    st.header("Pipeline Dashboard")
+    col_title, col_refresh = st.columns([8, 1])
+    with col_title:
+        st.header("Pipeline Dashboard")
+    with col_refresh:
+        st.write("")
+        if st.button("🔄 Refresh"):
+            st.cache_data.clear()
+            st.rerun()
 
     # -----------------------------------------------------------------------
     # Step Functions — execution history
@@ -85,20 +101,21 @@ def render() -> None:
                     {
                         "Name": ex.get("name", ""),
                         "Status": ex.get("status", ""),
-                        "Start": ex.get("startDate", ""),
-                        "Stop": ex.get("stopDate", ""),
+                        "Start": str(ex.get("startDate", ""))[:19],
+                        "Stop": str(ex.get("stopDate", ""))[:19],
                     }
                 )
             df_ex = pd.DataFrame(rows)
-            # Render status as coloured badges
-            status_col = df_ex["Status"].apply(lambda s: _status_badge(s))
             df_display = df_ex.copy()
-            df_display["Status"] = status_col
+            df_display["Status"] = df_ex["Status"].apply(_status_badge)
             st.write(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
-            st.info("No executions found.")
+            st.info("No executions yet. Trigger a pipeline run from the **Batch Trigger** page.")
     except Exception as exc:
-        st.error(f"Could not load executions: {exc}")
+        if _is_not_found(exc):
+            st.warning("State machine not found in AWS. Check that Terraform has been applied.")
+        else:
+            st.error(f"Could not load executions: {exc}")
 
     st.divider()
 
@@ -118,8 +135,14 @@ def render() -> None:
         col2.metric("Succeeded", succeeded)
         col3.metric("Failed", failed)
         col4.metric("Last Run", str(last_run_ts)[:19])
+
+        if total == 0:
+            st.info("No ingestion runs recorded yet. Trigger a pipeline run from **Batch Trigger**.")
     except Exception as exc:
-        st.error(f"Could not load ledger stats: {exc}")
+        if _is_not_found(exc):
+            st.warning("Ledger table not found. Check that Terraform has been applied.")
+        else:
+            st.error(f"Could not load ledger stats: {exc}")
 
     st.divider()
 
@@ -132,9 +155,12 @@ def render() -> None:
         if watermarks:
             st.dataframe(pd.DataFrame(watermarks), use_container_width=True)
         else:
-            st.info("No watermarks found.")
+            st.info("No watermarks yet. They appear after the first successful pipeline run.")
     except Exception as exc:
-        st.error(f"Could not load watermarks: {exc}")
+        if _is_not_found(exc):
+            st.warning("Watermarks table not found. Check that Terraform has been applied.")
+        else:
+            st.error(f"Could not load watermarks: {exc}")
 
     st.divider()
 
@@ -153,10 +179,10 @@ def render() -> None:
                 try:
                     df_m = _load_metric(metric_name, dataset)
                     if df_m.empty:
-                        st.caption(f"{metric_name}: no data")
+                        st.caption(f"{metric_name}: no data yet")
                     else:
                         st.caption(metric_name)
                         st.line_chart(df_m.set_index("Timestamp")["Value"])
                 except Exception as exc:
-                    st.caption(f"{metric_name}: error — {exc}")
+                    st.caption(f"{metric_name}: no data yet")
         st.divider()

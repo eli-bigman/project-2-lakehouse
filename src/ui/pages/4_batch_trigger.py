@@ -26,7 +26,7 @@ from ui.components import stepfunctions as sf_helper
 if not config.UI_ENABLE_TRIGGER:
     st.warning(
         "Batch triggering is disabled in this environment. "
-        "Set UI_ENABLE_TRIGGER=true to enable it."
+        "Set UI_ENABLE_TRIGGER=true in your .env to enable it."
     )
     st.stop()
 
@@ -35,11 +35,9 @@ if not config.UI_ENABLE_TRIGGER:
 # ---------------------------------------------------------------------------
 
 _DATASETS = ["dim_products", "fct_orders", "fct_order_items"]
-
 _ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
-
 _POLL_INTERVAL_SEC = 5
-_POLL_TIMEOUT_SEC = 300  # 5 minutes
+_POLL_TIMEOUT_SEC = 300
 
 
 def _s3_client():
@@ -47,11 +45,11 @@ def _s3_client():
         session = boto3.Session(profile_name=config.AWS_PROFILE, region_name=config.AWS_REGION)
     else:
         session = boto3.Session(region_name=config.AWS_REGION)
-    return session.client("s3")
+    return session.client("s3", region_name=config.AWS_REGION)
 
 
 def _upload_to_raw(file_bytes: bytes, filename: str, dataset: str, batch_id: str) -> str:
-    """Upload file to the raw S3 bucket and return the S3 URI."""
+    """Upload file to the raw S3 bucket under dataset/year/month/batch_id/ and return the S3 URI."""
     now = datetime.now(timezone.utc)
     key = f"{dataset}/{now.year:04d}/{now.month:02d}/{batch_id}/{filename}"
     s3 = _s3_client()
@@ -60,7 +58,7 @@ def _upload_to_raw(file_bytes: bytes, filename: str, dataset: str, batch_id: str
 
 
 def _poll_execution(execution_arn: str, status_placeholder) -> str:
-    """Poll execution until terminal state or timeout. Updates a Streamlit placeholder."""
+    """Poll execution until terminal state or timeout."""
     terminal = {"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"}
     elapsed = 0
 
@@ -88,6 +86,12 @@ def render() -> None:
     st.warning(
         "This page uploads a file to S3 and starts a live pipeline execution. "
         "Use with caution in shared environments."
+    )
+
+    st.info(
+        f"**Raw bucket:** `{config.S3_RAW_BUCKET}` | "
+        f"**Region:** `{config.AWS_REGION}` | "
+        f"**State machine:** `{config.STEP_FUNCTIONS_ARN.split(':')[-1]}`"
     )
 
     # -----------------------------------------------------------------------
@@ -118,10 +122,10 @@ def render() -> None:
             f"{uuid.uuid4().hex[:6]}"
         )
 
-        with st.spinner(f"Uploading {filename} to {config.S3_RAW_BUCKET}..."):
+        with st.spinner(f"Uploading {filename} to s3://{config.S3_RAW_BUCKET}/..."):
             try:
                 s3_uri = _upload_to_raw(uploaded_file.read(), filename, dataset, batch_id)
-                st.success(f"Uploaded → {s3_uri}")
+                st.success(f"Uploaded → `{s3_uri}`")
             except Exception as exc:
                 st.error(f"Upload failed: {exc}")
                 return
@@ -132,6 +136,7 @@ def render() -> None:
                     "dataset": dataset,
                     "batch_id": batch_id,
                     "source_file": s3_uri,
+                    "file_key": s3_uri.replace(f"s3://{config.S3_RAW_BUCKET}/", ""),
                 }
                 execution_arn = sf_helper.start_execution(
                     input_dict=execution_input,

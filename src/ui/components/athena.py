@@ -53,6 +53,7 @@ def run_query(
         sql=effective_sql,
         database=db,
         workgroup=wg,
+        s3_output=config.ATHENA_RESULTS_URI,
         boto3_session=boto3_session,
     )
     return df
