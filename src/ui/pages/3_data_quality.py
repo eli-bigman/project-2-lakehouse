@@ -17,39 +17,37 @@ import streamlit as st
 from ui import config
 from ui.components.athena import run_query
 
-# ---------------------------------------------------------------------------
-# SQL helpers
-# ---------------------------------------------------------------------------
+_DB = config.ATHENA_DATABASE
 
-_QUARANTINE_COUNTS_SQL = """
+_QUARANTINE_COUNTS_SQL = f"""
 SELECT
     dataset,
     batch_id,
     reason,
     COUNT(*) AS count
-FROM ecom_lakehouse_quarantine
+FROM "{_DB}"."ecom_lakehouse_quarantine"
 GROUP BY dataset, batch_id, reason
 ORDER BY batch_id DESC, count DESC
 """
 
-_QUARANTINE_LATEST_SQL = """
+_QUARANTINE_LATEST_SQL = f"""
 SELECT *
-FROM ecom_lakehouse_quarantine
+FROM "{_DB}"."ecom_lakehouse_quarantine"
 WHERE batch_id = (
-    SELECT MAX(batch_id) FROM ecom_lakehouse_quarantine
+    SELECT MAX(batch_id) FROM "{_DB}"."ecom_lakehouse_quarantine"
 )
 ORDER BY dataset, reason
 """
 
-_RI_CHECK_SQL = """
+_RI_CHECK_SQL = f"""
 SELECT
     i.id            AS item_id,
     i.order_id      AS orphan_order_id,
     i.product_id    AS orphan_product_id,
     i._batch_id     AS batch_id
-FROM fct_order_items i
-LEFT JOIN fct_orders o ON i.order_id = o.order_id
-LEFT JOIN dim_products p ON i.product_id = p.product_id
+FROM "{_DB}"."fct_order_items" i
+LEFT JOIN "{_DB}"."fct_orders" o ON i.order_id = o.order_id
+LEFT JOIN "{_DB}"."dim_products" p ON i.product_id = p.product_id
 WHERE o.order_id IS NULL OR p.product_id IS NULL
 """
 
@@ -58,8 +56,19 @@ SELECT
     '{dataset}' AS dataset,
     '{pk}' AS pk_column,
     COUNT(*) - COUNT(DISTINCT {pk}) AS duplicate_count
-FROM {dataset}
+FROM "{db}"."{dataset}"
 """
+
+
+def _is_empty_or_missing(exc: Exception) -> bool:
+    msg = str(exc)
+    return any(k in msg for k in (
+        "Table not found",
+        "does not exist",
+        "SYNTAX_ERROR",
+        "TABLE_NOT_FOUND",
+        "EntityNotFoundException",
+    ))
 
 
 @st.cache_data(ttl=120)
@@ -86,14 +95,16 @@ def _load_dedup_checks():
     }
     results = []
     for dataset, pk in pk_map.items():
-        sql = _DEDUP_CHECK_SQL_TEMPLATE.format(dataset=dataset, pk=pk)
+        sql = _DEDUP_CHECK_SQL_TEMPLATE.format(dataset=dataset, pk=pk, db=_DB)
         try:
             df = run_query(sql, max_rows=1)
             if not df.empty:
                 results.append(df.iloc[0].to_dict())
+            else:
+                results.append({"dataset": dataset, "pk_column": pk, "duplicate_count": "no data"})
         except Exception as exc:
             results.append(
-                {"dataset": dataset, "pk_column": pk, "duplicate_count": f"ERROR: {exc}"}
+                {"dataset": dataset, "pk_column": pk, "duplicate_count": "no data yet"}
             )
     return pd.DataFrame(results) if results else pd.DataFrame()
 
@@ -113,11 +124,10 @@ def render() -> None:
     try:
         df_counts = _load_quarantine_counts()
         if df_counts.empty:
-            st.success("No quarantined records found.")
+            st.success("No quarantined records found — all ingested rows passed validation.")
         else:
             st.dataframe(df_counts, use_container_width=True)
 
-            # Bar chart of reject reasons across all batches
             st.subheader("Reject Reasons — Distribution")
             reason_totals = (
                 df_counts.groupby("reason")["count"]
@@ -127,7 +137,13 @@ def render() -> None:
             )
             st.bar_chart(reason_totals.set_index("reason")["count"])
     except Exception as exc:
-        st.error(f"Could not load quarantine counts: {exc}")
+        if _is_empty_or_missing(exc):
+            st.info(
+                "Quarantine table has no data yet. "
+                "Trigger a pipeline run from **Batch Trigger** to populate it."
+            )
+        else:
+            st.error(f"Could not load quarantine counts: {exc}")
 
     st.divider()
 
@@ -143,7 +159,10 @@ def render() -> None:
             st.markdown(f"**{len(df_latest):,} quarantined rows in latest batch**")
             st.dataframe(df_latest, use_container_width=True)
     except Exception as exc:
-        st.error(f"Could not load latest quarantine records: {exc}")
+        if _is_empty_or_missing(exc):
+            st.info("No quarantined records yet.")
+        else:
+            st.error(f"Could not load latest quarantine records: {exc}")
 
     st.divider()
 
@@ -160,7 +179,10 @@ def render() -> None:
             st.warning(f"{len(df_ri):,} orphan FK rows detected (should be 0 in a healthy load).")
             st.dataframe(df_ri, use_container_width=True)
     except Exception as exc:
-        st.error(f"RI check failed: {exc}")
+        if _is_empty_or_missing(exc):
+            st.info("Tables are empty — RI check will run after the first pipeline execution.")
+        else:
+            st.error(f"RI check failed: {exc}")
 
     st.divider()
 
@@ -172,9 +194,8 @@ def render() -> None:
     try:
         df_dedup = _load_dedup_checks()
         if df_dedup.empty:
-            st.info("Could not run dedup checks.")
+            st.info("No tables to check yet.")
         else:
-            # Highlight rows with duplicates
             def _highlight(row):
                 try:
                     flag = int(row["duplicate_count"]) > 0

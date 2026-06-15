@@ -24,8 +24,8 @@ def _int(value: str, default: int) -> int:
 # AWS / infrastructure
 # ---------------------------------------------------------------------------
 
-AWS_PROFILE: str | None = os.environ.get("AWS_PROFILE")  # e.g. "personal"; None in CI/OIDC
-AWS_REGION: str = os.environ.get("AWS_REGION", "us-east-1")
+AWS_PROFILE: str | None = os.environ.get("AWS_PROFILE")  # e.g. "sandbox-lakehouse-dev"; None in CI/OIDC
+AWS_REGION: str = os.environ.get("AWS_REGION", "eu-west-1")
 
 S3_RAW_BUCKET: str = os.environ.get("S3_RAW_BUCKET", "ecom-lakehouse-raw-dev")
 S3_ARTIFACTS_BUCKET: str = os.environ.get("S3_ARTIFACTS_BUCKET", "ecom-lakehouse-artifacts-dev")
@@ -34,8 +34,11 @@ S3_ARTIFACTS_BUCKET: str = os.environ.get("S3_ARTIFACTS_BUCKET", "ecom-lakehouse
 # Athena
 # ---------------------------------------------------------------------------
 
-ATHENA_WORKGROUP: str = os.environ.get("ATHENA_WORKGROUP", "ecom_lakehouse_wg_dev")
+ATHENA_WORKGROUP: str = os.environ.get("ATHENA_WORKGROUP", "primary")
 ATHENA_DATABASE: str = os.environ.get("ATHENA_DATABASE", "ecom_lakehouse_db_dev")
+ATHENA_RESULTS_URI: str = os.environ.get(
+    "ATHENA_RESULTS_URI", "s3://ecom-lakehouse-athena-results-dev/results/"
+)
 
 # ---------------------------------------------------------------------------
 # DynamoDB tables
@@ -54,7 +57,7 @@ DYNAMODB_WATERMARKS_TABLE: str = os.environ.get(
 
 STEP_FUNCTIONS_ARN: str = os.environ.get(
     "STEP_FUNCTIONS_ARN",
-    "arn:aws:states:us-east-1:647594457599:stateMachine:ecom-lakehouse-sm-dev",
+    "arn:aws:states:eu-west-1:970547336735:stateMachine:ecom-lakehouse-sm-dev",
 )
 
 # ---------------------------------------------------------------------------
