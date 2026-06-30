@@ -1,10 +1,10 @@
 """
-scripts/demo_teardown.py — One-command demo teardown for the ecom-lakehouse pipeline.
+scripts/demo_teardown.py -- One-command demo teardown for the ecom-lakehouse pipeline.
 
 Orchestration order (idempotent, safe-to-run any number of times):
-  1.  clean_slate    — empty all S3 data zones + clear DynamoDB tables (preserves infra)
-  2.  terraform destroy — tear down all AWS resources (uses -auto-approve)
-  3.  report         — summary of what was destroyed
+  1.  clean_slate    -- empty all S3 data zones + clear DynamoDB tables (preserves infra)
+  2.  terraform destroy -- tear down all AWS resources (uses -auto-approve)
+  3.  report         -- summary of what was destroyed
 
 Usage (PowerShell):
     $env:AWS_PROFILE = "sandbox-lakehouse-dev"
@@ -19,9 +19,9 @@ Notes:
     deletion of the DWH bucket. Teardown sets it to false for the destroy run.
 
 Exit codes:
-    0  — teardown successful
-    1  — teardown completed with warnings
-    2  — fatal error (infrastructure could not be destroyed)
+    0  -- teardown successful
+    1  -- teardown completed with warnings
+    2  -- fatal error (infrastructure could not be destroyed)
 """
 
 import os
@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 
 import boto3
 
-# ─── Configuration ────────────────────────────────────────────────────────────
+# --- Configuration ------------------------------------------------------------
 PROFILE    = os.environ.get("AWS_PROFILE", "sandbox-lakehouse-dev")
 REGION     = os.environ.get("AWS_REGION",  "eu-west-1")
 ENV        = "dev"
@@ -56,7 +56,7 @@ ALL_BUCKETS = [
 errors = []
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# --- Helpers ------------------------------------------------------------------
 
 def banner(title: str):
     width = 60
@@ -80,15 +80,15 @@ def get_session():
         return boto3.Session(region_name=REGION)
 
 
-# ─── Step 1: Wipe all S3 buckets ─────────────────────────────────────────────
+# --- Step 1: Wipe all S3 buckets ---------------------------------------------
 
 def step_empty_buckets():
-    banner("STEP 1 / 2 — Empty ALL S3 Buckets (versions + delete markers)")
+    banner("STEP 1 / 2 -- Empty ALL S3 Buckets (versions + delete markers)")
     session = get_session()
     s3      = session.resource("s3")
 
     for bucket_name in ALL_BUCKETS:
-        print(f"\n[*] Emptying: {bucket_name}…")
+        print(f"\n[*] Emptying: {bucket_name}...")
         try:
             bucket  = s3.Bucket(bucket_name)
             batch   = []
@@ -102,61 +102,61 @@ def step_empty_buckets():
             if batch:
                 bucket.delete_objects(Delete={"Objects": batch, "Quiet": True})
                 count += len(batch)
-            print(f"    [✓] Deleted {count} object version(s).")
+            print(f"    [OK] Deleted {count} object version(s).")
         except s3.meta.client.exceptions.NoSuchBucket:
-            print(f"    [~] Bucket does not exist — skipping.")
+            print(f"    [--] Bucket does not exist - skipping.")
         except Exception as e:
             msg = f"Could not empty bucket {bucket_name}: {e}"
-            print(f"    [✗] {msg}")
+            print(f"    [ERR] {msg}")
             errors.append(msg)
 
 
-# ─── Step 2: Terraform destroy ────────────────────────────────────────────────
+# --- Step 2: Terraform destroy ------------------------------------------------
 
 def step_terraform_destroy():
-    banner("STEP 2 / 2 — Terraform Destroy")
+    banner("STEP 2 / 2 -- Terraform Destroy")
     # protect_stateful prevents dwh bucket deletion; override it for destroy
     run(
         f'terraform destroy "-var-file={TFVARS}" '
         f'"-var=protect_stateful=false" "-auto-approve"',
         cwd=INFRA_DIR
     )
-    print("\n[✓] All infrastructure destroyed.")
+    print("\n[OK] All infrastructure destroyed.")
 
 
-# ─── Final report ─────────────────────────────────────────────────────────────
+# --- Final report -------------------------------------------------------------
 
 def print_report():
     banner("TEARDOWN REPORT")
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     print(f"\nCompleted at: {ts}")
     if errors:
-        print(f"\n{'─'*60}")
+        print(f"\n{'--'*30}")
         print("ISSUES ENCOUNTERED:")
         for i, e in enumerate(errors, 1):
             print(f"  {i}. {e}")
-        print("\n❌  TEARDOWN COMPLETED WITH WARNINGS. Review the issues above.")
+        print("\n[FAIL] TEARDOWN COMPLETED WITH WARNINGS. Review the issues above.")
     else:
-        print("\n✅  TEARDOWN COMPLETE. All resources removed.")
+        print("\n[SUCCESS] TEARDOWN COMPLETE. All resources removed.")
         print("    Run `python scripts/demo_spinup.py` to spin up again for demo.")
     print("=" * 60)
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# --- Main ---------------------------------------------------------------------
 
 def main():
     print("\n" + "=" * 60)
-    print("  E-COMMERCE LAKEHOUSE — DEMO TEARDOWN")
+    print("  E-COMMERCE LAKEHOUSE -- DEMO TEARDOWN")
     print(f"  Profile: {PROFILE}  |  Region: {REGION}  |  Env: {ENV}")
     print("=" * 60)
-    print("\n⚠️  This will DESTROY all AWS resources for the dev environment.")
+    print("\n[!] This will DESTROY all AWS resources for the dev environment.")
 
     step_empty_buckets()
 
     try:
         step_terraform_destroy()
     except Exception as e:
-        print(f"\n[✗] FATAL: Terraform destroy failed: {e}")
+        print(f"\n[ERR] FATAL: Terraform destroy failed: {e}")
         errors.append(str(e))
         print_report()
         sys.exit(2)

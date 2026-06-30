@@ -1,24 +1,24 @@
 """
-scripts/demo_spinup.py — One-command demo spin-up for the ecom-lakehouse pipeline.
+scripts/demo_spinup.py -- One-command demo spin-up for the ecom-lakehouse pipeline.
 
 Orchestration order (Senior DE best-practice: idempotent, observable, fail-fast):
-  1.  terraform apply        — provision / reconcile all AWS infrastructure
-  2.  deploy_lambdas         — push real Lambda code (overcomes placeholder.zip bootstrap)
-  3.  build & upload wheel   — package the lakehouse PySpark library and push to S3 artifacts
-  4.  upload Glue scripts    — push ingest.py / optimize.py to S3 artifacts
-  5.  clean_slate            — reset S3 data zones + DynamoDB ledger (idempotent)
-  6.  upload sample data     — trigger S3 event → EventBridge → Step Functions
-  7.  poll Step Functions    — wait for all 3 executions to reach SUCCEEDED / FAILED
-  8.  report                 — print a summary with pass/fail for each dataset
+  1.  terraform apply        -- provision / reconcile all AWS infrastructure
+  2.  deploy_lambdas         -- push real Lambda code (overcomes placeholder.zip bootstrap)
+  3.  build & upload wheel   -- package the lakehouse PySpark library and push to S3 artifacts
+  4.  upload Glue scripts    -- push ingest.py / optimize.py to S3 artifacts
+  5.  clean_slate            -- reset S3 data zones + DynamoDB ledger (idempotent)
+  6.  upload sample data     -- trigger S3 event -> EventBridge -> Step Functions
+  7.  poll Step Functions    -- wait for all 3 executions to reach SUCCEEDED / FAILED
+  8.  report                 -- print a summary with pass/fail for each dataset
 
 Usage (PowerShell):
     $env:AWS_PROFILE = "sandbox-lakehouse-dev"
     python scripts/demo_spinup.py
 
 Exit codes:
-    0  — all pipelines succeeded
-    1  — one or more pipelines failed (see report)
-    2  — infrastructure or deployment step failed
+    0  -- all pipelines succeeded
+    1  -- one or more pipelines failed (see report)
+    2  -- infrastructure or deployment step failed
 """
 
 import os
@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 
 import boto3
 
-# ─── Configuration ────────────────────────────────────────────────────────────
+# --- Configuration ------------------------------------------------------------
 PROFILE    = os.environ.get("AWS_PROFILE", "sandbox-lakehouse-dev")
 REGION     = os.environ.get("AWS_REGION",  "eu-west-1")
 ENV        = "dev"
@@ -67,7 +67,7 @@ POLL_TIMEOUT_S   = 900  # 15 min max wait for pipelines
 
 errors = []  # accumulated non-fatal errors for final report
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# --- Helpers ------------------------------------------------------------------
 
 def banner(title: str):
     width = 60
@@ -102,28 +102,28 @@ def zip_dir(path: str, ziph, prefix: str = ""):
                 ziph.write(file_path, os.path.join(prefix, rel_path))
 
 
-# ─── Step 1: Terraform apply ──────────────────────────────────────────────────
+# --- Step 1: Terraform apply --------------------------------------------------
 
 def step_terraform():
-    banner("STEP 1 / 7 — Terraform Apply")
+    banner("STEP 1 / 7 -- Terraform Apply")
     run(
         f'terraform apply "-var-file={TFVARS}" "-auto-approve"',
         cwd=INFRA_DIR
     )
-    print("\n[✓] Infrastructure is up-to-date.")
+    print("\n[OK] Infrastructure is up-to-date.")
 
 
-# ─── Step 2: Deploy Lambdas ───────────────────────────────────────────────────
+# --- Step 2: Deploy Lambdas ---------------------------------------------------
 
 def step_deploy_lambdas():
-    banner("STEP 2 / 7 — Deploy Lambda Functions")
+    banner("STEP 2 / 7 -- Deploy Lambda Functions")
     session = get_session()
     client  = session.client("lambda")
     os.makedirs(os.path.join(ROOT_DIR, "dist"), exist_ok=True)
 
     for info in LAMBDAS:
         zip_path = os.path.join(ROOT_DIR, "dist", f"{info['name']}.zip")
-        print(f"\n[*] Packaging {info['name']}…")
+        print(f"\n[*] Packaging {info['name']}...")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(os.path.join(ROOT_DIR, info["entry"]), info["zip_name"])
             zip_dir(os.path.join(ROOT_DIR, "src", "lakehouse"), zipf, prefix="lakehouse")
@@ -133,26 +133,26 @@ def step_deploy_lambdas():
 
         try:
             resp = client.update_function_code(FunctionName=info["name"], ZipFile=code)
-            print(f"    [✓] Deployed → version {resp.get('Version', '$LATEST')}")
+            print(f"    [OK] Deployed -> version {resp.get('Version', '$LATEST')}")
         except Exception as e:
             msg = f"Lambda deploy failed for {info['name']}: {e}"
-            print(f"    [✗] {msg}")
+            print(f"    [ERR] {msg}")
             errors.append(msg)
 
-    print("\n[✓] Lambda deployment complete.")
+    print("\n[OK] Lambda deployment complete.")
 
 
-# ─── Step 3 & 4: Build wheel + upload Glue artifacts ─────────────────────────
+# --- Step 3 & 4: Build wheel + upload Glue artifacts -------------------------
 
 def step_glue_artifacts():
-    banner("STEP 3 & 4 / 7 — Build PySpark Wheel + Upload Glue Artifacts")
+    banner("STEP 3 & 4 / 7 -- Build PySpark Wheel + Upload Glue Artifacts")
     session = get_session()
     s3      = session.client("s3")
 
-    # Build wheel
+    # Build wheel using relative paths (avoid spaces-in-path issues on Windows)
     dist_dir = os.path.join(ROOT_DIR, "dist")
     os.makedirs(dist_dir, exist_ok=True)
-    run(f"pip wheel --no-deps -w {dist_dir} {ROOT_DIR}")
+    run("pip wheel --no-deps -w dist/ .", cwd=ROOT_DIR)
 
     # Find the built wheel (name may vary)
     wheels = list(Path(dist_dir).glob("*.whl"))
@@ -163,30 +163,30 @@ def step_glue_artifacts():
 
     # Upload wheel
     s3.upload_file(wheel_path, ARTIFACTS_BUCKET, "wheels/lakehouse-latest.whl")
-    print(f"[✓] Uploaded wheel → s3://{ARTIFACTS_BUCKET}/wheels/lakehouse-latest.whl")
+    print(f"[OK] Uploaded wheel -> s3://{ARTIFACTS_BUCKET}/wheels/lakehouse-latest.whl")
 
     # Upload Glue ETL scripts
     for script_name in ("ingest.py", "optimize.py"):
         local = os.path.join(ROOT_DIR, "src", "glue_jobs", script_name)
         key   = f"scripts/{script_name}"
         s3.upload_file(local, ARTIFACTS_BUCKET, key)
-        print(f"[✓] Uploaded script → s3://{ARTIFACTS_BUCKET}/{key}")
+        print(f"[OK] Uploaded script -> s3://{ARTIFACTS_BUCKET}/{key}")
 
-    print("\n[✓] Glue artifacts ready.")
+    print("\n[OK] Glue artifacts ready.")
 
 
-# ─── Step 5: Clean slate ──────────────────────────────────────────────────────
+# --- Step 5: Clean slate ------------------------------------------------------
 
 def step_clean_slate():
-    banner("STEP 5 / 7 — Clean Slate (Reset data zones)")
+    banner("STEP 5 / 7 -- Clean Slate (Reset data zones)")
     run(f"python scripts/clean_slate.py")
-    print("\n[✓] Environment is clean.")
+    print("\n[OK] Environment is clean.")
 
 
-# ─── Step 6: Upload sample data ───────────────────────────────────────────────
+# --- Step 6: Upload sample data -----------------------------------------------
 
 def step_upload_data():
-    banner("STEP 6 / 7 — Upload Sample Data → Trigger Pipeline")
+    banner("STEP 6 / 7 -- Upload Sample Data -> Trigger Pipeline")
     session = get_session()
     s3      = session.client("s3")
 
@@ -194,31 +194,31 @@ def step_upload_data():
         full_local = os.path.join(ROOT_DIR, local_path)
         if not os.path.exists(full_local):
             msg = f"Sample data file not found: {full_local}"
-            print(f"[✗] {msg}")
+            print(f"[ERR] {msg}")
             errors.append(msg)
             continue
         s3.upload_file(full_local, RAW_BUCKET, s3_key)
-        print(f"[✓] Uploaded {local_path} → s3://{RAW_BUCKET}/{s3_key}")
+        print(f"[OK] Uploaded {local_path} -> s3://{RAW_BUCKET}/{s3_key}")
 
-    print("\n[✓] All sample files uploaded. Step Functions executions starting…")
+    print("\n[OK] All sample files uploaded. Step Functions executions starting...")
 
 
-# ─── Step 7: Poll Step Functions ──────────────────────────────────────────────
+# --- Step 7: Poll Step Functions ----------------------------------------------
 
 def step_poll_pipelines():
-    banner("STEP 7 / 7 — Polling Step Functions Executions")
+    banner("STEP 7 / 7 -- Polling Step Functions Executions")
     session  = get_session()
     sfn      = session.client("stepfunctions")
 
     # Allow a few seconds for EventBridge to fire
-    print("[*] Waiting 15 s for EventBridge to trigger executions…")
+    print("[*] Waiting 15 s for EventBridge to trigger executions...")
     time.sleep(15)
 
     start_ts = datetime.now(timezone.utc)
     deadline = time.time() + POLL_TIMEOUT_S
-    report   = {}   # execution_arn → final status
+    report   = {}   # execution_arn -> final status
 
-    print(f"[*] Polling every {POLL_INTERVAL_S}s (timeout {POLL_TIMEOUT_S}s)…\n")
+    print(f"[*] Polling every {POLL_INTERVAL_S}s (timeout {POLL_TIMEOUT_S}s)...\n")
 
     while time.time() < deadline:
         paginator = sfn.get_paginator("list_executions")
@@ -253,7 +253,7 @@ def step_poll_pipelines():
     return report
 
 
-# ─── Final report ─────────────────────────────────────────────────────────────
+# --- Final report -------------------------------------------------------------
 
 def print_report(sfn_report: dict):
     banner("DEMO SPIN-UP REPORT")
@@ -264,7 +264,7 @@ def print_report(sfn_report: dict):
         print("-" * 65)
         for arn, info in sfn_report.items():
             status = info["status"]
-            icon   = "✓" if status == "SUCCEEDED" else "✗"
+            icon   = "[OK]" if status == "SUCCEEDED" else "[ERR]"
             print(f"[{icon}] {arn.split(':')[-1][:46]:<46}  {status}")
             if status != "SUCCEEDED":
                 all_ok = False
@@ -275,45 +275,45 @@ def print_report(sfn_report: dict):
         errors.append("No Step Functions executions tracked. Check EventBridge rule.")
 
     if errors:
-        print(f"\n{'─'*60}")
+        print(f"\n{'-'*60}")
         print("ISSUES ENCOUNTERED:")
         for i, e in enumerate(errors, 1):
             print(f"  {i}. {e}")
 
-    print(f"\n{'─'*60}")
+    print(f"\n{'-'*60}")
     if all_ok:
-        print("✅  DEMO ENVIRONMENT IS READY.  All pipelines succeeded.")
+        print("[SUCCESS]  DEMO ENVIRONMENT IS READY.  All pipelines succeeded.")
         print(f"    DWH bucket: s3://{PREFIX}-dwh-{ENV}/")
-        print(f"    Query via Athena → database: ecom_lakehouse_{ENV}")
+        print(f"    Query via Athena -> database: ecom_lakehouse_{ENV}")
     else:
-        print("❌  SPIN-UP COMPLETED WITH ERRORS. Review the issues above.")
+        print("[FAIL]  SPIN-UP COMPLETED WITH ERRORS. Review the issues above.")
     print("=" * 60)
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# --- Main ---------------------------------------------------------------------
 
 def main():
     print("\n" + "=" * 60)
-    print("  E-COMMERCE LAKEHOUSE — DEMO SPIN-UP")
+    print("  E-COMMERCE LAKEHOUSE -- DEMO SPIN-UP")
     print(f"  Profile: {PROFILE}  |  Region: {REGION}  |  Env: {ENV}")
     print("=" * 60)
 
     try:
         step_terraform()
     except Exception as e:
-        print(f"\n[✗] FATAL: Terraform failed: {e}")
+        print(f"\n[ERR] FATAL: Terraform failed: {e}")
         sys.exit(2)
 
     try:
         step_deploy_lambdas()
     except Exception as e:
-        print(f"\n[✗] FATAL: Lambda deployment failed: {e}")
+        print(f"\n[ERR] FATAL: Lambda deployment failed: {e}")
         sys.exit(2)
 
     try:
         step_glue_artifacts()
     except Exception as e:
-        print(f"\n[✗] FATAL: Glue artifacts upload failed: {e}")
+        print(f"\n[ERR] FATAL: Glue artifacts upload failed: {e}")
         sys.exit(2)
 
     step_clean_slate()
