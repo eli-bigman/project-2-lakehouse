@@ -122,22 +122,28 @@ data "aws_iam_policy_document" "stateless_policy" {
     }
   }
 
-  statement {
-    sid    = "EnforceKMSEncryption"
-    effect = "Deny"
+  # EnforceKMSEncryption only when use_cmk=true (prod CMK setup).
+  # In dev (use_cmk=false), S3 default bucket encryption handles SSE-KMS
+  # automatically without requiring the caller to pass the header explicitly.
+  dynamic "statement" {
+    for_each = var.use_cmk ? [1] : []
+    content {
+      sid    = "EnforceKMSEncryption"
+      effect = "Deny"
 
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
 
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.stateless[each.key].arn}/*"]
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.stateless[each.key].arn}/*"]
 
-    condition {
-      test     = "StringNotEquals"
-      variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      condition {
+        test     = "StringNotEquals"
+        variable = "s3:x-amz-server-side-encryption"
+        values   = ["aws:kms"]
+      }
     }
   }
 }
