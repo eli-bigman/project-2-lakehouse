@@ -66,6 +66,14 @@ def delta_session(app_name: str, enable_hive_catalog: bool = False) -> SparkSess
     #   - autoMerge=false        → no silent schema evolution (ADR-005)
     spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "false")
 
+    # S3 buckets enforce SSE-KMS (ADR-021). Configure S3A connector to send the
+    # x-amz-server-side-encryption: aws:kms header on every PutObject request.
+    spark.conf.set("spark.hadoop.fs.s3a.server-side-encryption-algorithm", "SSE-KMS")
+
+    # For AWS Glue/EMRFS (which uses s3:// scheme):
+    spark.conf.set("spark.hadoop.fs.s3.enableServerSideEncryption", "true")
+    spark.conf.set("spark.hadoop.fs.s3.serverSideEncryptionAlgorithm", "SSE-KMS")
+
     return spark
 
 

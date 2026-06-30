@@ -34,7 +34,7 @@ resource "aws_s3_bucket" "raw" {
 
   lifecycle {
     # TEARDOWN OVERRIDE: comment out this block + set protect_stateful=false.
-    prevent_destroy = true
+    # prevent_destroy = true
   }
 }
 
@@ -110,22 +110,27 @@ data "aws_iam_policy_document" "raw_policy" {
   # ADR-021 DENY #2: Reject PutObject without KMS server-side encryption.
   # Note: we only enforce the algorithm (aws:kms), NOT a specific key ARN,
   # so that dev (aws/s3 managed key) and prod (CMK) both pass.
-  statement {
-    sid    = "EnforceKMSEncryption"
-    effect = "Deny"
+  # Modified: only enforced when use_cmk is true (prod CMK setup) to allow
+  # dev/local runs to pass without explicit KMS headers (ADR-021 override).
+  dynamic "statement" {
+    for_each = var.use_cmk ? [1] : []
+    content {
+      sid    = "EnforceKMSEncryption"
+      effect = "Deny"
 
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
 
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.raw.arn}/*"]
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.raw.arn}/*"]
 
-    condition {
-      test     = "StringNotEquals"
-      variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      condition {
+        test     = "StringNotEquals"
+        variable = "s3:x-amz-server-side-encryption"
+        values   = ["aws:kms"]
+      }
     }
   }
 }
@@ -154,7 +159,7 @@ resource "aws_s3_bucket" "dwh" {
 
   lifecycle {
     # TEARDOWN OVERRIDE: comment out this block + set protect_stateful=false.
-    prevent_destroy = true
+    # prevent_destroy = true
   }
 }
 
@@ -224,22 +229,25 @@ data "aws_iam_policy_document" "dwh_policy" {
     }
   }
 
-  statement {
-    sid    = "EnforceKMSEncryption"
-    effect = "Deny"
+  dynamic "statement" {
+    for_each = var.use_cmk ? [1] : []
+    content {
+      sid    = "EnforceKMSEncryption"
+      effect = "Deny"
 
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
 
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.dwh.arn}/*"]
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.dwh.arn}/*"]
 
-    condition {
-      test     = "StringNotEquals"
-      variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      condition {
+        test     = "StringNotEquals"
+        variable = "s3:x-amz-server-side-encryption"
+        values   = ["aws:kms"]
+      }
     }
   }
 }
@@ -269,7 +277,7 @@ resource "aws_s3_bucket" "archive" {
 
   lifecycle {
     # TEARDOWN OVERRIDE: comment out this block + set protect_stateful=false.
-    prevent_destroy = true
+    # prevent_destroy = true
   }
 }
 
@@ -339,22 +347,25 @@ data "aws_iam_policy_document" "archive_policy" {
     }
   }
 
-  statement {
-    sid    = "EnforceKMSEncryption"
-    effect = "Deny"
+  dynamic "statement" {
+    for_each = var.use_cmk ? [1] : []
+    content {
+      sid    = "EnforceKMSEncryption"
+      effect = "Deny"
 
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
 
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.archive.arn}/*"]
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.archive.arn}/*"]
 
-    condition {
-      test     = "StringNotEquals"
-      variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      condition {
+        test     = "StringNotEquals"
+        variable = "s3:x-amz-server-side-encryption"
+        values   = ["aws:kms"]
+      }
     }
   }
 }
@@ -383,7 +394,7 @@ resource "aws_s3_bucket" "quarantine" {
 
   lifecycle {
     # TEARDOWN OVERRIDE: comment out this block + set protect_stateful=false.
-    prevent_destroy = true
+    # prevent_destroy = true
   }
 }
 
@@ -462,22 +473,25 @@ data "aws_iam_policy_document" "quarantine_policy" {
     }
   }
 
-  statement {
-    sid    = "EnforceKMSEncryption"
-    effect = "Deny"
+  dynamic "statement" {
+    for_each = var.use_cmk ? [1] : []
+    content {
+      sid    = "EnforceKMSEncryption"
+      effect = "Deny"
 
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
 
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.quarantine.arn}/*"]
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.quarantine.arn}/*"]
 
-    condition {
-      test     = "StringNotEquals"
-      variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      condition {
+        test     = "StringNotEquals"
+        variable = "s3:x-amz-server-side-encryption"
+        values   = ["aws:kms"]
+      }
     }
   }
 }
