@@ -12,6 +12,15 @@
 #
 # Step Functions owns all retries — max_retry_attempts=0 on all functions.
 
+# ── DATA SOURCES FOR LAMBDA LAYERS ───────────────────────────────────────────
+data "aws_ssm_parameter" "pandas_layer" {
+  name = "/aws/service/aws-sdk-pandas/3.11.0/py3.11/x86_64/layer-arn"
+}
+
+data "aws_lambda_layer_version" "openpyxl" {
+  layer_name = "${var.prefix}-openpyxl-${var.env}"
+}
+
 locals {
   # Shared environment variables injected into all Lambda functions.
   common_env = {
@@ -61,6 +70,11 @@ resource "aws_lambda_function" "normalize" {
   # 300s: xlsx files with thousands of rows can be slow on pandas.
   timeout     = 300
   memory_size = 1024
+
+  layers = [
+    data.aws_ssm_parameter.pandas_layer.value,
+    data.aws_lambda_layer_version.openpyxl.arn
+  ]
 
   environment {
     variables = local.common_env
@@ -168,6 +182,10 @@ resource "aws_lambda_function" "validate_schema" {
 
   timeout     = 60
   memory_size = 256
+
+  layers = [
+    data.aws_ssm_parameter.pandas_layer.value
+  ]
 
   environment {
     variables = local.common_env

@@ -56,11 +56,11 @@ data "aws_iam_policy_document" "normalize_lambda_policy" {
     resources = ["${var.raw_bucket_arn}/*"]
   }
 
-  # Write normalized Parquet to staging.
+  # Write and read normalized Parquet in staging.
   statement {
-    sid       = "WriteStaging"
+    sid       = "ReadWriteStaging"
     effect    = "Allow"
-    actions   = ["s3:PutObject"]
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion"]
     resources = ["${var.staging_bucket_arn}/*"]
   }
 

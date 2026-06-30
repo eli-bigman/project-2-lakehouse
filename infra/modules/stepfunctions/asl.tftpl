@@ -101,9 +101,9 @@
       "Parameters": {
         "JobName": "${glue_ingest_job}",
         "Arguments": {
-          "--dataset.$": "$.dataset",
-          "--file_key.$": "$.file_key",
-          "--batch_id.$": "$.batch_id"
+          "--dataset.$": "$.claimResult.Payload.dataset",
+          "--file_key.$": "$.claimResult.Payload.file_key",
+          "--batch_id.$": "$.claimResult.Payload.batch_id"
         }
       },
       "ResultPath": "$.glueResult",
@@ -131,7 +131,7 @@
       "Parameters": {
         "JobName": "${glue_optimize_job}",
         "Arguments": {
-          "--tables.$": "$.dataset"
+          "--tables.$": "$.claimResult.Payload.dataset"
         }
       },
       "ResultPath": "$.optimizeResult",

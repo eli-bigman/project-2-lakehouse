@@ -51,19 +51,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         {"archive_uri": "s3://ecom-lakehouse-archive-dev/orders/orders-20250401-abc123/..."}
     """
     # ------------------------------------------------------------------
-    # Validate event
+    # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
-    required_keys = ["file_key", "raw_bucket", "archive_bucket", "batch_id", "dataset", "env"]
+    event = {**event}
+    claim_payload = event.get("claimResult", {}).get("Payload")
+    if isinstance(claim_payload, dict):
+        for k, v in claim_payload.items():
+            if k not in event or event[k] == "PLACEHOLDER_PARSED_FROM_KEY":
+                event[k] = v
+
+    if "raw_bucket" not in event:
+        event["raw_bucket"] = event.get("source_bucket") or os.environ.get("RAW_BUCKET")
+
+    if "env" not in event:
+        event["env"] = os.environ.get("ENV") or os.environ.get("TF_ENV") or "dev"
+
+    required_keys = ["file_key", "raw_bucket", "batch_id", "dataset", "env"]
     missing = [k for k in required_keys if k not in event]
     if missing:
         raise ValueError(f"archive_file: missing event keys: {missing}")
 
     file_key: str = event["file_key"]
     raw_bucket: str = event["raw_bucket"]
-    archive_bucket: str = event["archive_bucket"]
     batch_id: str = event["batch_id"]
     dataset: str = event["dataset"]
     env: str = event["env"]
+    # archive_bucket is optional — derive from env when not provided
+    archive_bucket: str = event.get("archive_bucket", f"ecom-lakehouse-archive-{env}")
 
     filename = os.path.basename(file_key)
 

@@ -70,8 +70,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     """
     # ------------------------------------------------------------------
-    # Validate event
+    # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
+    event = {**event}
+    
+    # 1. Resolve staging_uri from normalizeResult (points to actual file)
+    normalize_payload = event.get("normalizeResult", {}).get("Payload")
+    if isinstance(normalize_payload, dict) and "staging_uri" in normalize_payload:
+        event["staging_uri"] = normalize_payload["staging_uri"]
+
+    # 2. Pull other metadata from claimResult (like dataset, batch_id)
+    claim_payload = event.get("claimResult", {}).get("Payload")
+    if isinstance(claim_payload, dict):
+        for k, v in claim_payload.items():
+            if k == "staging_uri" and "staging_uri" in event:
+                continue
+            if k not in event or event[k] == "PLACEHOLDER_PARSED_FROM_KEY":
+                event[k] = v
+
     required_keys = ["staging_uri", "dataset", "batch_id"]
     missing_event = [k for k in required_keys if k not in event]
     if missing_event:

@@ -73,8 +73,27 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         RuntimeError: wraps any unexpected exception with context for CloudWatch logs.
     """
     # ------------------------------------------------------------------
-    # Validate event shape
+    # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
+    event = {**event}
+    claim_payload = event.get("claimResult", {}).get("Payload")
+    if isinstance(claim_payload, dict):
+        for k, v in claim_payload.items():
+            if k not in event or event[k] == "PLACEHOLDER_PARSED_FROM_KEY":
+                event[k] = v
+
+    if "raw_key" not in event and "file_key" in event:
+        event["raw_key"] = event["file_key"]
+
+    if "raw_bucket" not in event:
+        event["raw_bucket"] = event.get("source_bucket") or os.environ.get("RAW_BUCKET")
+
+    if "env" not in event:
+        event["env"] = os.environ.get("ENV") or os.environ.get("TF_ENV") or "dev"
+
+    if "staging_bucket" not in event:
+        event["staging_bucket"] = os.environ.get("STAGING_BUCKET") or f"ecom-lakehouse-staging-{event['env']}"
+
     required_keys = ["raw_key", "dataset", "batch_id", "raw_bucket", "staging_bucket", "env"]
     missing = [k for k in required_keys if k not in event]
     if missing:
@@ -202,7 +221,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     try:
         logger.info("Uploading Parquet to %s", staging_uri)
-        s3_client.upload_file(parquet_local, staging_bucket, staging_key)
+        s3_client.upload_file(
+            parquet_local, staging_bucket, staging_key,
+            ExtraArgs={"ServerSideEncryption": "aws:kms"},
+        )
     except Exception as exc:
         raise RuntimeError(
             f"normalize_to_parquet: failed to upload to {staging_uri}: {exc}"
