@@ -62,8 +62,8 @@ LAMBDAS = [
     {"name": f"{PREFIX}-normalize-{ENV}",        "entry": "src/normalize/normalize_to_parquet.py","zip_name": "normalize.py"},
 ]
 
-POLL_INTERVAL_S  = 20   # seconds between status checks
-POLL_TIMEOUT_S   = 900  # 15 min max wait for pipelines
+POLL_INTERVAL_S  = int(os.environ.get("DEMO_POLL_INTERVAL_S", "20"))   # seconds between status checks
+POLL_TIMEOUT_S   = int(os.environ.get("DEMO_POLL_TIMEOUT_S", "900"))  # max wait for pipelines
 
 errors = []  # accumulated non-fatal errors for final report
 

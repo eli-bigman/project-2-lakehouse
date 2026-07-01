@@ -66,11 +66,11 @@ resource "aws_glue_catalog_table" "dim_products" {
 
   storage_descriptor {
     location      = "s3://${var.dwh_bucket_name}/dim_products/"
-    input_format  = "org.apache.hadoop.mapred.SequenceFileInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
 
     ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
     }
 
     # Business columns (Design Contract §3.3 — dim_products).
@@ -138,11 +138,11 @@ resource "aws_glue_catalog_table" "fct_orders" {
 
   storage_descriptor {
     location      = "s3://${var.dwh_bucket_name}/fct_orders/"
-    input_format  = "org.apache.hadoop.mapred.SequenceFileInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
 
     ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
     }
 
     # Business columns (Design Contract §3.3 — fct_orders).
@@ -215,11 +215,11 @@ resource "aws_glue_catalog_table" "fct_order_items" {
 
   storage_descriptor {
     location      = "s3://${var.dwh_bucket_name}/fct_order_items/"
-    input_format  = "org.apache.hadoop.mapred.SequenceFileInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
 
     ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
     }
 
     # Business columns (Design Contract §3.3 — fct_order_items).
