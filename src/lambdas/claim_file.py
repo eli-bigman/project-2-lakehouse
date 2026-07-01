@@ -63,18 +63,56 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
     """
     # ------------------------------------------------------------------
-    # Validate event
+    # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
-    required_keys = ["file_key", "dataset", "batch_id", "raw_bucket", "env"]
-    missing = [k for k in required_keys if k not in event]
-    if missing:
-        raise ValueError(f"claim_file: missing event keys: {missing}")
+    import os
+    import datetime
 
-    file_key: str = event["file_key"]
-    dataset: str = event["dataset"]
-    batch_id: str = event["batch_id"]
-    raw_bucket: str = event["raw_bucket"]
-    env: str = event["env"]
+    file_key: str = event.get("file_key")
+    if not file_key:
+        raise ValueError("claim_file: missing required key 'file_key' in event")
+
+    raw_bucket: str = event.get("raw_bucket") or event.get("source_bucket") or os.environ.get("RAW_BUCKET")
+    if not raw_bucket:
+        raise ValueError("claim_file: could not resolve 'raw_bucket' from event or environment")
+
+    env: str = event.get("env") or os.environ.get("ENV") or os.environ.get("TF_ENV") or "dev"
+
+    dataset: str = event.get("dataset")
+    if not dataset or dataset == "PLACEHOLDER_PARSED_FROM_KEY":
+        # Parse from file_key, e.g. "dim_products/2025/04/products.csv" -> "products"
+        parts = file_key.split("/")
+        if parts:
+            first_dir = parts[0]
+            if first_dir.startswith("dim_"):
+                dataset = first_dir[4:]
+            elif first_dir.startswith("fct_"):
+                dataset = first_dir[4:]
+            else:
+                dataset = first_dir
+        else:
+            raise ValueError(f"claim_file: could not parse dataset from file_key '{file_key}'")
+
+    # Normalize dataset to valid short dataset name (e.g. products, orders, order_items)
+    if dataset not in ["products", "orders", "order_items"]:
+        clean_ds = dataset.replace("-", "_")
+        if clean_ds == "dim_products":
+            dataset = "products"
+        elif clean_ds == "fct_orders":
+            dataset = "orders"
+        elif clean_ds == "fct_order_items":
+            dataset = "order_items"
+        else:
+            raise ValueError(f"claim_file: invalid dataset '{dataset}' resolved from file_key '{file_key}'")
+
+    batch_id: str = event.get("batch_id")
+    if not batch_id:
+        # Construct a descriptive, unique batch ID
+        event_id = event.get("event_id", "manual")
+        clean_event_id = event_id.replace("-", "")[:8]
+        timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        batch_id = f"{dataset}-{timestamp}-{clean_event_id}"
+
 
     logger.info(
         "Claiming file: bucket=%s key=%s dataset=%s batch_id=%s",

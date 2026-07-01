@@ -15,7 +15,7 @@ All config dicts below key on the SHORT name.  DATASET_TO_TABLE maps short→tab
 import os
 
 # ---------------------------------------------------------------------------
-# Environment
+# Environment  (resolved from Lambda/Glue env vars; defaults to dev/eu-west-1)
 # ---------------------------------------------------------------------------
 # Resolved from the TF_ENV environment variable; defaults to "dev" locally.
 # The same suffix is appended to every stateful AWS resource.
@@ -30,8 +30,8 @@ PROJECT_PREFIX = "ecom-lakehouse"
 # ---------------------------------------------------------------------------
 # AWS coordinates
 # ---------------------------------------------------------------------------
-AWS_ACCOUNT_ID = "647594457599"
-AWS_REGION = "us-east-1"
+AWS_ACCOUNT_ID = os.environ.get("AWS_ACCOUNT_ID", "970547336735")
+AWS_REGION = os.environ.get("AWS_REGION", "eu-west-1")
 
 # ---------------------------------------------------------------------------
 # S3 Bucket Names  (architecture.md §3.2)

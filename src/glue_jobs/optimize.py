@@ -32,8 +32,14 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="ecom-lakehouse OPTIMIZE + VACUUM Glue job")
     parser.add_argument(
         "--dataset",
-        default="all",
-        help=('Short dataset name to optimize, or "all" to optimize every table ' "(default: all)"),
+        default=None,
+        help='Short dataset name to optimize, or "all" to optimize every table',
+    )
+    # Step Functions ASL passes --tables (dataset name) — accept as alias for --dataset
+    parser.add_argument(
+        "--tables",
+        default=None,
+        help="Alias for --dataset (passed by Step Functions ASL)",
     )
     parser.add_argument(
         "--env",
@@ -52,7 +58,12 @@ def parse_args(argv=None):
         default=168,
         help="VACUUM retention window in hours (default: 168 = 7 days)",
     )
-    return parser.parse_args(argv)
+    # parse_known_args ignores Glue-injected args (--JOB_ID, --JOB_RUN_ID, etc.)
+    args, _ = parser.parse_known_args(argv)
+    # Resolve dataset: --tables takes precedence over --dataset; default to "all"
+    if args.dataset is None:
+        args.dataset = args.tables if args.tables else "all"
+    return args
 
 
 def main(argv=None):

@@ -27,6 +27,7 @@ Idempotency pattern (conditional writes):
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -57,7 +58,8 @@ class LedgerClient:
             env: Environment suffix ("dev" | "prod").
         """
         self.env = env
-        self.dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        region = os.environ.get("AWS_REGION", "eu-west-1")
+        self.dynamodb = boto3.resource("dynamodb", region_name=region)
         self.ledger_table = self.dynamodb.Table(f"ecom_lakehouse_ingestion_ledger_{env}")
         self.watermarks_table = self.dynamodb.Table(f"ecom_lakehouse_watermarks_{env}")
 

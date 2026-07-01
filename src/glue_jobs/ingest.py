@@ -57,13 +57,20 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--staging_uri",
-        required=True,
-        help="Full S3 URI of the staging Parquet prefix for this batch",
+        default=None,
+        help="Full S3 URI of the staging Parquet prefix for this batch "
+             "(default: derived from --dataset and --batch_id)",
+    )
+    parser.add_argument(
+        "--file_key",
+        default=None,
+        help="Raw S3 key passed by Step Functions (used to derive --source_file)",
     )
     parser.add_argument(
         "--source_file",
-        required=True,
-        help="S3 URI of the original raw file (for _source_file audit column)",
+        default=None,
+        help="S3 URI of the original raw file (for _source_file audit column; "
+             "default: derived from --file_key)",
     )
     parser.add_argument(
         "--env",
@@ -87,7 +94,9 @@ def parse_args(argv=None):
         default=None,
         help="Quarantine S3 bucket name (default: ecom-lakehouse-quarantine-{env})",
     )
-    return parser.parse_args(argv)
+    # parse_known_args ignores Glue-injected args (--JOB_ID, --JOB_RUN_ID, etc.)
+    args, _ = parser.parse_known_args(argv)
+    return args
 
 
 def main(argv=None):
@@ -99,19 +108,34 @@ def main(argv=None):
     """
     args = parse_args(argv)
 
+    # Derive optional args from mandatory ones when not provided.
+    # This keeps the Step Functions ASL minimal — it only passes --dataset,
+    # --file_key (or --batch_id), and --batch_id.
+    env = args.env
+    staging_bucket = f"{config.PROJECT_PREFIX}-staging-{env}"
+    raw_bucket = f"{config.PROJECT_PREFIX}-raw-{env}"
+
+    if args.staging_uri is None:
+        args.staging_uri = (
+            f"s3://{staging_bucket}/{args.dataset}/batch_id={args.batch_id}/part.parquet"
+        )
+    if args.source_file is None:
+        # file_key is the raw S3 key (no bucket prefix); use it directly as source_file
+        raw_key = args.file_key or ""
+        args.source_file = f"s3://{raw_bucket}/{raw_key}" if raw_key else ""
+
     logger = logging_utils.get_logger(__name__)
     logger.info(
         "Ingest job started",
         extra={
             "dataset": args.dataset,
             "batch_id": args.batch_id,
-            "env": args.env,
+            "env": env,
             "staging_uri": args.staging_uri,
         },
     )
 
     # Resolve bucket names (use arg override or default from config)
-    env = args.env
     dwh_bucket = args.dwh_bucket or f"{config.PROJECT_PREFIX}-dwh-{env}"
     quarantine_bucket = args.quarantine_bucket or f"{config.PROJECT_PREFIX}-quarantine-{env}"
 
@@ -121,10 +145,8 @@ def main(argv=None):
     merge_key = MERGE_KEY[args.dataset]
     schema = SCHEMAS[args.dataset]
 
-    # file_key is used as the DynamoDB ledger PK; derive from source_file URI
-    # by stripping the "s3://bucket/" prefix to get the raw zone S3 key.
-    raw_bucket = f"{config.PROJECT_PREFIX}-raw-{env}"
-    file_key = args.source_file.replace(f"s3://{raw_bucket}/", "")
+    # file_key is used as the DynamoDB ledger PK (raw S3 key without bucket prefix)
+    file_key = args.source_file.replace(f"s3://{raw_bucket}/", "") if args.source_file else (args.file_key or "")
 
     ledger = LedgerClient(env=env)
 
@@ -135,7 +157,7 @@ def main(argv=None):
         logger.info("Step 1: Creating SparkSession")
         spark = lake_io.delta_session(
             app_name=f"ecom-lakehouse-ingest-{args.dataset}-{args.batch_id}",
-            enable_hive_catalog=True,
+            enable_hive_catalog=False,
         )
 
         # ------------------------------------------------------------------
