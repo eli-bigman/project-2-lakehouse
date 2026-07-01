@@ -14,11 +14,11 @@ $env:AWS_REGION = "eu-west-1"
 ```
 
 ### Automated One-Command Spin-Up (Recommended)
-You can build, deploy, clean, seed, and poll the entire platform in a single command using the automated orchestrator script. This script handles Terraform apply, Lambda deployment, PySpark packaging, S3 uploads, database reset, and polls the pipeline executions until all tables are successfully populated:
+You can build, deploy, clean, seed, and poll the entire platform in a single command using the automated orchestrator. This handles Terraform apply, Lambda deployment, PySpark packaging, S3 uploads, database reset, and polls the pipeline executions until all tables are successfully populated:
 ```powershell
-python scripts/demo_spinup.py
+make demo-up
 ```
-*This takes ~4 minutes to complete. It outputs a status report showing the exact execution status of all ingestion runs.*
+*This takes ~4 minutes to complete. It outputs a status report showing the exact execution status of all ingestion runs. Alternatively, you can use `python scripts/demo_spinup.py` directly.*
 
 ### Manual Step-by-Step Spin-Up (Under the Hood)
 If the reviewer asks how the deployment works, you can explain that the automated script executes the following stages sequentially:
@@ -121,8 +121,9 @@ python scripts/clean_slate.py
 ### Option B: Automated One-Command Tear Down (Recommended)
 To destroy all AWS infrastructure and clean up your sandbox with a single command (which automatically empties S3 buckets with versioning enabled and overrides stateful protection guards):
 ```powershell
-python scripts/demo_teardown.py
+make demo-down
 ```
+*Alternatively, you can run `python scripts/demo_teardown.py` directly.*
 
 ### Option C: Manual Step-by-Step Tear Down (Under the Hood)
 If doing it manually, you must first empty the versioned S3 buckets, then run terraform destroy with `protect_stateful` set to `false`:
