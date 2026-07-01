@@ -205,7 +205,7 @@ def step_upload_data():
 
 # --- Step 7: Poll Step Functions ----------------------------------------------
 
-def step_poll_pipelines():
+def step_poll_pipelines(start_ts):
     banner("STEP 7 / 7 -- Polling Step Functions Executions")
     session  = get_session()
     sfn      = session.client("stepfunctions")
@@ -213,8 +213,6 @@ def step_poll_pipelines():
     # Allow a few seconds for EventBridge to fire
     print("[*] Waiting 15 s for EventBridge to trigger executions...")
     time.sleep(15)
-
-    start_ts = datetime.now(timezone.utc)
     deadline = time.time() + POLL_TIMEOUT_S
     report   = {}   # execution_arn -> final status
 
@@ -265,7 +263,7 @@ def print_report(sfn_report: dict):
         for arn, info in sfn_report.items():
             status = info["status"]
             icon   = "[OK]" if status == "SUCCEEDED" else "[ERR]"
-            print(f"[{icon}] {arn.split(':')[-1][:46]:<46}  {status}")
+            print(f"{icon} {arn.split(':')[-1][:46]:<46}  {status}")
             if status != "SUCCEEDED":
                 all_ok = False
                 errors.append(f"Execution {arn} ended with status: {status}")
@@ -284,7 +282,7 @@ def print_report(sfn_report: dict):
     if all_ok:
         print("[SUCCESS]  DEMO ENVIRONMENT IS READY.  All pipelines succeeded.")
         print(f"    DWH bucket: s3://{PREFIX}-dwh-{ENV}/")
-        print(f"    Query via Athena -> database: ecom_lakehouse_{ENV}")
+        print(f"    Query via Athena -> database: ecom_lakehouse_db_{ENV}")
     else:
         print("[FAIL]  SPIN-UP COMPLETED WITH ERRORS. Review the issues above.")
     print("=" * 60)
@@ -317,8 +315,9 @@ def main():
         sys.exit(2)
 
     step_clean_slate()
+    start_ts = datetime.now(timezone.utc)
     step_upload_data()
-    sfn_report = step_poll_pipelines()
+    sfn_report = step_poll_pipelines(start_ts)
     print_report(sfn_report)
 
     sys.exit(0 if not errors else 1)
