@@ -14,28 +14,45 @@ import os
 import zipfile
 import boto3
 
+from pathlib import Path
+
+def load_env():
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    if key.strip() not in os.environ:
+                        os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+load_env()
+
 # Configuration
 PROFILE = os.environ.get("AWS_PROFILE", "sandbox-lakehouse-dev")
 REGION = os.environ.get("AWS_REGION", "eu-west-1")
+ENV = "dev"
+PREFIX = os.environ.get("PROJECT_PREFIX", "ecom-lakehouse-eli")
 
 LAMBDAS = [
     {
-        "name": "ecom-lakehouse-claim-file-dev",
+        "name": f"{PREFIX}-claim-file-{ENV}",
         "entry": "src/lambdas/claim_file.py",
         "zip_name": "claim_file.py"
     },
     {
-        "name": "ecom-lakehouse-archive-file-dev",
+        "name": f"{PREFIX}-archive-file-{ENV}",
         "entry": "src/lambdas/archive_file.py",
         "zip_name": "archive_file.py"
     },
     {
-        "name": "ecom-lakehouse-validate-schema-dev",
+        "name": f"{PREFIX}-validate-schema-{ENV}",
         "entry": "src/lambdas/validate_schema.py",
         "zip_name": "validate_schema.py"
     },
     {
-        "name": "ecom-lakehouse-normalize-dev",
+        "name": f"{PREFIX}-normalize-{ENV}",
         "entry": "src/normalize/normalize_to_parquet.py",
         "zip_name": "normalize.py"
     }
