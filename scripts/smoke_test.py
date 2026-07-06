@@ -94,7 +94,7 @@ def upload_canary(session: boto3.Session) -> str:
         ServerSideEncryption="aws:kms",
     )
     uri = f"s3://{S3_RAW_BUCKET}/{CANARY_S3_KEY}"
-    print(f"[smoke_test] Canary uploaded → {uri}")
+    print(f"[smoke_test] Canary uploaded -> {uri}")
     return uri
 
 
@@ -123,7 +123,7 @@ def start_execution(session: boto3.Session, canary_uri: str) -> str:
         input=execution_input,
     )
     arn = response["executionArn"]
-    print(f"[smoke_test] Execution started → {arn}")
+    print(f"[smoke_test] Execution started -> {arn}")
     return arn
 
 

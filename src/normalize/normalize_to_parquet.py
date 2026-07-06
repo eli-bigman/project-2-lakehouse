@@ -92,7 +92,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         event["env"] = os.environ.get("ENV") or os.environ.get("TF_ENV") or "dev"
 
     if "staging_bucket" not in event:
-        event["staging_bucket"] = os.environ.get("STAGING_BUCKET") or f"ecom-lakehouse-staging-{event['env']}"
+        event["staging_bucket"] = (
+            os.environ.get("STAGING_BUCKET") or f"ecom-lakehouse-staging-{event['env']}"
+        )
 
     required_keys = ["raw_key", "dataset", "batch_id", "raw_bucket", "staging_bucket", "env"]
     missing = [k for k in required_keys if k not in event]
@@ -222,7 +224,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         logger.info("Uploading Parquet to %s", staging_uri)
         s3_client.upload_file(
-            parquet_local, staging_bucket, staging_key,
+            parquet_local,
+            staging_bucket,
+            staging_key,
             ExtraArgs={"ServerSideEncryption": "aws:kms"},
         )
     except Exception as exc:

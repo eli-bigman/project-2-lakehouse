@@ -29,6 +29,7 @@ try:
         StructType,
         TimestampType,
     )
+
     _PYSPARK_AVAILABLE = True
 except ImportError:
     _PYSPARK_AVAILABLE = False

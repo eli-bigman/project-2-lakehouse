@@ -65,14 +65,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # ------------------------------------------------------------------
     # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
-    import os
     import datetime
+    import os
 
     file_key: str = event.get("file_key")
     if not file_key:
         raise ValueError("claim_file: missing required key 'file_key' in event")
 
-    raw_bucket: str = event.get("raw_bucket") or event.get("source_bucket") or os.environ.get("RAW_BUCKET")
+    raw_bucket: str = (
+        event.get("raw_bucket") or event.get("source_bucket") or os.environ.get("RAW_BUCKET")
+    )
     if not raw_bucket:
         raise ValueError("claim_file: could not resolve 'raw_bucket' from event or environment")
 
@@ -103,7 +105,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif clean_ds == "fct_order_items":
             dataset = "order_items"
         else:
-            raise ValueError(f"claim_file: invalid dataset '{dataset}' resolved from file_key '{file_key}'")
+            raise ValueError(
+                f"claim_file: invalid dataset '{dataset}' resolved from file_key '{file_key}'"
+            )
 
     batch_id: str = event.get("batch_id")
     if not batch_id:
@@ -112,7 +116,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         clean_event_id = event_id.replace("-", "")[:8]
         timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
         batch_id = f"{dataset}-{timestamp}-{clean_event_id}"
-
 
     logger.info(
         "Claiming file: bucket=%s key=%s dataset=%s batch_id=%s",

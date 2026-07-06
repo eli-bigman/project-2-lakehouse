@@ -67,7 +67,7 @@ def get_s3_client() -> boto3.client:
 
 def upload_file(s3_client, local_path: Path, bucket: str, key: str) -> None:
     """Upload a single file and print a confirmation message."""
-    print(f"  Uploading {local_path.name} → s3://{bucket}/{key} ...", end=" ")
+    print(f"  Uploading {local_path.name} -> s3://{bucket}/{key} ...", end=" ")
     s3_client.upload_file(str(local_path), bucket, key)
     print("OK")
 

@@ -59,7 +59,7 @@ def parse_args(argv=None):
         "--staging_uri",
         default=None,
         help="Full S3 URI of the staging Parquet prefix for this batch "
-        "(default: derived from --dataset and --batch_id)",
+             "(default: derived from --dataset and --batch_id)",
     )
     parser.add_argument(
         "--file_key",
@@ -70,7 +70,7 @@ def parse_args(argv=None):
         "--source_file",
         default=None,
         help="S3 URI of the original raw file (for _source_file audit column; "
-        "default: derived from --file_key)",
+             "default: derived from --file_key)",
     )
     parser.add_argument(
         "--env",
@@ -146,11 +146,7 @@ def main(argv=None):
     schema = SCHEMAS[args.dataset]
 
     # file_key is used as the DynamoDB ledger PK (raw S3 key without bucket prefix)
-    file_key = (
-        args.source_file.replace(f"s3://{raw_bucket}/", "")
-        if args.source_file
-        else (args.file_key or "")
-    )
+    file_key = args.source_file.replace(f"s3://{raw_bucket}/", "") if args.source_file else (args.file_key or "")
 
     ledger = LedgerClient(env=env)
 

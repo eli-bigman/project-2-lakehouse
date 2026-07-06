@@ -40,12 +40,15 @@ def _status_badge(status: str) -> str:
 
 def _is_not_found(exc: Exception) -> bool:
     msg = str(exc)
-    return any(k in msg for k in (
-        "StateMachineDoesNotExist",
-        "ResourceNotFoundException",
-        "Requested resource not found",
-        "does not exist",
-    ))
+    return any(
+        k in msg
+        for k in (
+            "StateMachineDoesNotExist",
+            "ResourceNotFoundException",
+            "Requested resource not found",
+            "does not exist",
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +140,9 @@ def render() -> None:
         col4.metric("Last Run", str(last_run_ts)[:19])
 
         if total == 0:
-            st.info("No ingestion runs recorded yet. Trigger a pipeline run from **Batch Trigger**.")
+            st.info(
+                "No ingestion runs recorded yet. Trigger a pipeline run from **Batch Trigger**."
+            )
     except Exception as exc:
         if _is_not_found(exc):
             st.warning("Ledger table not found. Check that Terraform has been applied.")
@@ -183,6 +188,6 @@ def render() -> None:
                     else:
                         st.caption(metric_name)
                         st.line_chart(df_m.set_index("Timestamp")["Value"])
-                except Exception as exc:
+                except Exception:
                     st.caption(f"{metric_name}: no data yet")
         st.divider()

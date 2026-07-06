@@ -62,13 +62,16 @@ FROM "{db}"."{dataset}"
 
 def _is_empty_or_missing(exc: Exception) -> bool:
     msg = str(exc)
-    return any(k in msg for k in (
-        "Table not found",
-        "does not exist",
-        "SYNTAX_ERROR",
-        "TABLE_NOT_FOUND",
-        "EntityNotFoundException",
-    ))
+    return any(
+        k in msg
+        for k in (
+            "Table not found",
+            "does not exist",
+            "SYNTAX_ERROR",
+            "TABLE_NOT_FOUND",
+            "EntityNotFoundException",
+        )
+    )
 
 
 @st.cache_data(ttl=120)
@@ -102,10 +105,8 @@ def _load_dedup_checks():
                 results.append(df.iloc[0].to_dict())
             else:
                 results.append({"dataset": dataset, "pk_column": pk, "duplicate_count": "no data"})
-        except Exception as exc:
-            results.append(
-                {"dataset": dataset, "pk_column": pk, "duplicate_count": "no data yet"}
-            )
+        except Exception:
+            results.append({"dataset": dataset, "pk_column": pk, "duplicate_count": "no data yet"})
     return pd.DataFrame(results) if results else pd.DataFrame()
 
 
@@ -196,6 +197,7 @@ def render() -> None:
         if df_dedup.empty:
             st.info("No tables to check yet.")
         else:
+
             def _highlight(row):
                 try:
                     flag = int(row["duplicate_count"]) > 0

@@ -64,63 +64,14 @@ resource "aws_glue_catalog_table" "dim_products" {
     "delta.compatible.checksum.enabled" = "true"
   }
 
+  # Athena's native Delta reader derives schema from the transaction log at
+  # query time. Declaring input/output format, SerDe, or an explicit column
+  # list here makes Athena fall back to a plain Hive/Parquet directory scan
+  # (reading every physical file, including ones OPTIMIZE has logically
+  # removed) instead of replaying the Delta log — causing duplicate rows
+  # after the first OPTIMIZE. Only `location` is supported for Delta tables.
   storage_descriptor {
-    location      = "s3://${var.dwh_bucket_name}/dim_products/"
-    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
-
-    ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-    }
-
-    # Business columns (Design Contract §3.3 — dim_products).
-    columns {
-      name    = "product_id"
-      type    = "int"
-      comment = "PK — unique product identifier"
-    }
-
-    columns {
-      name    = "department_id"
-      type    = "int"
-      comment = "FK to department lookup"
-    }
-
-    columns {
-      name    = "department"
-      type    = "string"
-      comment = "One of: Books, Sports, Toys, Home, Clothing, Electronics"
-    }
-
-    columns {
-      name = "product_name"
-      type = "string"
-    }
-
-    # Audit columns (Design Contract §3.3 — appended to every Delta table).
-    columns {
-      name    = "_ingest_ts"
-      type    = "timestamp"
-      comment = "UTC timestamp when this record was ingested"
-    }
-
-    columns {
-      name    = "_source_file"
-      type    = "string"
-      comment = "S3 key of the source file"
-    }
-
-    columns {
-      name    = "_batch_id"
-      type    = "string"
-      comment = "batch_id = {dataset}-{yyyymmdd}-{short_uuid}"
-    }
-
-    columns {
-      name    = "_record_hash"
-      type    = "string"
-      comment = "SHA-256 of business columns for dedup"
-    }
+    location = "s3://${var.dwh_bucket_name}/dim_products/"
   }
 }
 
@@ -136,68 +87,10 @@ resource "aws_glue_catalog_table" "fct_orders" {
     "delta.compatible.checksum.enabled" = "true"
   }
 
+  # See dim_products above: Delta tables must declare only `location` — any
+  # SerDe/format/column list defeats Athena's native Delta log replay.
   storage_descriptor {
-    location      = "s3://${var.dwh_bucket_name}/fct_orders/"
-    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
-
-    ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-    }
-
-    # Business columns (Design Contract §3.3 — fct_orders).
-    columns {
-      name = "order_num"
-      type = "int"
-    }
-
-    columns {
-      name    = "order_id"
-      type    = "bigint"
-      comment = "PK / merge key — unique order identifier"
-    }
-
-    columns {
-      name = "user_id"
-      type = "bigint"
-    }
-
-    columns {
-      name = "order_timestamp"
-      type = "timestamp"
-    }
-
-    columns {
-      name = "total_amount"
-      type = "decimal(10,2)"
-    }
-
-    columns {
-      name    = "order_date"
-      type    = "date"
-      comment = "Z-Order key (ADR-005) — partition-ready at ≥1 GB/partition"
-    }
-
-    # Audit columns.
-    columns {
-      name = "_ingest_ts"
-      type = "timestamp"
-    }
-
-    columns {
-      name = "_source_file"
-      type = "string"
-    }
-
-    columns {
-      name = "_batch_id"
-      type = "string"
-    }
-
-    columns {
-      name = "_record_hash"
-      type = "string"
-    }
+    location = "s3://${var.dwh_bucket_name}/fct_orders/"
   }
 }
 
@@ -213,88 +106,10 @@ resource "aws_glue_catalog_table" "fct_order_items" {
     "delta.compatible.checksum.enabled" = "true"
   }
 
+  # See dim_products above: Delta tables must declare only `location` — any
+  # SerDe/format/column list defeats Athena's native Delta log replay.
   storage_descriptor {
-    location      = "s3://${var.dwh_bucket_name}/fct_order_items/"
-    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
-
-    ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-    }
-
-    # Business columns (Design Contract §3.3 — fct_order_items).
-    columns {
-      name    = "id"
-      type    = "bigint"
-      comment = "PK / merge key"
-    }
-
-    columns {
-      name    = "order_id"
-      type    = "bigint"
-      comment = "FK → fct_orders.order_id"
-    }
-
-    columns {
-      name = "user_id"
-      type = "bigint"
-    }
-
-    columns {
-      name    = "days_since_prior_order"
-      type    = "int"
-      comment = "0–365 (observed 0–30)"
-    }
-
-    columns {
-      name    = "product_id"
-      type    = "int"
-      comment = "FK → dim_products.product_id"
-    }
-
-    columns {
-      name    = "add_to_cart_order"
-      type    = "int"
-      comment = "≥ 1"
-    }
-
-    columns {
-      name    = "reordered"
-      type    = "int"
-      comment = "∈ {0,1}"
-    }
-
-    columns {
-      name = "order_timestamp"
-      type = "timestamp"
-    }
-
-    columns {
-      name    = "order_date"
-      type    = "date"
-      comment = "Z-Order key (ADR-005)"
-    }
-
-    # Audit columns.
-    columns {
-      name = "_ingest_ts"
-      type = "timestamp"
-    }
-
-    columns {
-      name = "_source_file"
-      type = "string"
-    }
-
-    columns {
-      name = "_batch_id"
-      type = "string"
-    }
-
-    columns {
-      name = "_record_hash"
-      type = "string"
-    }
+    location = "s3://${var.dwh_bucket_name}/fct_order_items/"
   }
 }
 

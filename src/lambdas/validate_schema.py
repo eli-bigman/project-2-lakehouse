@@ -73,7 +73,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Parse/generate missing keys from event or environment (robust auto-fill)
     # ------------------------------------------------------------------
     event = {**event}
-    
+
     # 1. Resolve staging_uri from normalizeResult (points to actual file)
     normalize_payload = event.get("normalizeResult", {}).get("Payload")
     if isinstance(normalize_payload, dict) and "staging_uri" in normalize_payload:

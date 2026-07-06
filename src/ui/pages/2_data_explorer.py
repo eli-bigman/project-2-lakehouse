@@ -57,7 +57,10 @@ def _build_query(
 
 def _get_delta_last_modified(dataset: str) -> str:
     try:
-        sql = f'SELECT MAX(timestamp) AS last_modified FROM "{config.ATHENA_DATABASE}"."{dataset}$history"'
+        sql = (
+            f"SELECT MAX(timestamp) AS last_modified "
+            f'FROM "{config.ATHENA_DATABASE}"."{dataset}$history"'
+        )
         df = run_query(sql, max_rows=1)
         val = df["last_modified"].iloc[0] if not df.empty else None
         return str(val)[:19] if val else "unavailable"
@@ -124,10 +127,14 @@ def render() -> None:
 
             except Exception as exc:
                 exc_str = str(exc)
-                if "Table not found" in exc_str or "does not exist" in exc_str.lower() or "SYNTAX_ERROR" in exc_str:
+                if (
+                    "Table not found" in exc_str
+                    or "does not exist" in exc_str.lower()
+                    or "SYNTAX_ERROR" in exc_str
+                ):
                     st.warning(
-                        f"Table **{dataset}** is registered in the Glue catalog but has no data yet. "
-                        "Trigger a pipeline run to load it."
+                        f"Table **{dataset}** is registered in the Glue catalog "
+                        "but has no data yet. Trigger a pipeline run to load it."
                     )
                     st.caption(f"Detail: {exc}")
                 else:

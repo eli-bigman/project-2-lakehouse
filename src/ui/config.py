@@ -24,7 +24,9 @@ def _int(value: str, default: int) -> int:
 # AWS / infrastructure
 # ---------------------------------------------------------------------------
 
-AWS_PROFILE: str | None = os.environ.get("AWS_PROFILE")  # e.g. "sandbox-lakehouse-dev"; None in CI/OIDC
+AWS_PROFILE: str | None = os.environ.get(
+    "AWS_PROFILE"
+)  # e.g. "sandbox-lakehouse-dev"; None in CI/OIDC
 AWS_REGION: str = os.environ.get("AWS_REGION", "eu-west-1")
 
 S3_RAW_BUCKET: str = os.environ.get("S3_RAW_BUCKET", "ecom-lakehouse-raw-dev")
