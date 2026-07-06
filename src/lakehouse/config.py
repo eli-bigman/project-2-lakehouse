@@ -13,6 +13,7 @@ All config dicts below key on the SHORT name.  DATASET_TO_TABLE maps short→tab
 """
 
 import os
+import sys
 
 # ---------------------------------------------------------------------------
 # Environment  (resolved from Lambda/Glue env vars; defaults to dev/eu-west-1)
@@ -27,9 +28,9 @@ ENV = os.environ.get("TF_ENV", "dev")
 # Resolves prefix dynamically from command-line arguments (for Glue runs)
 # or environment variables (for Lambda runs / local dev).
 # ---------------------------------------------------------------------------
-import sys
-
-PROJECT_PREFIX = os.environ.get("PROJECT_PREFIX") or os.environ.get("PROJECT_NAME") or "ecom-lakehouse"
+PROJECT_PREFIX = (
+    os.environ.get("PROJECT_PREFIX") or os.environ.get("PROJECT_NAME") or "ecom-lakehouse"
+)
 for i in range(len(sys.argv)):
     arg = sys.argv[i]
     if arg in ("--PROJECT_PREFIX", "--project_prefix"):
