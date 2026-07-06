@@ -18,7 +18,7 @@ data "aws_ssm_parameter" "pandas_layer" {
 }
 
 data "aws_lambda_layer_version" "openpyxl" {
-  layer_name = "${var.prefix}-openpyxl-${var.env}"
+  layer_name = "ecom-lakehouse-openpyxl-${var.env}"
 }
 
 locals {
@@ -31,6 +31,7 @@ locals {
     STAGING_BUCKET   = var.staging_bucket
     DWH_BUCKET       = var.dwh_bucket
     ARCHIVE_BUCKET   = var.archive_bucket
+    PROJECT_PREFIX   = var.prefix
   }
 }
 

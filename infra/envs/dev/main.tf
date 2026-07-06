@@ -14,7 +14,7 @@
 
 locals {
   env    = "dev"
-  prefix = "ecom-lakehouse"
+  prefix = "ecom-lakehouse-eli"
 
   account_id = var.account_id
 
@@ -124,7 +124,7 @@ module "glue" {
   glue_role_arn         = module.iam.glue_ingest_role_arn
 
   # Use default db naming convention (empty → "ecom_lakehouse_db_dev").
-  database_name = ""
+  database_name = "ecom_lakehouse_eli_db_dev"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
