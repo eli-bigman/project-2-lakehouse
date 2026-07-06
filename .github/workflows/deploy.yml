@@ -55,5 +55,6 @@ jobs:
         env:
           AWS_REGION: eu-west-1
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          S3_RAW_BUCKET: ecom-lakehouse-raw-dev
+          S3_RAW_BUCKET: ecom-lakehouse-eli-raw-dev
+          SM_NAME: ecom-lakehouse-eli-sm-dev
         run: python scripts/smoke_test.py

@@ -36,8 +36,8 @@ import boto3
 
 AWS_REGION = os.environ.get("AWS_REGION", "eu-west-1")
 AWS_ACCOUNT_ID = os.environ.get("AWS_ACCOUNT_ID", "970547336735")
-SM_NAME = os.environ.get("SM_NAME", "ecom-lakehouse-sm-dev")
-S3_RAW_BUCKET = os.environ.get("S3_RAW_BUCKET", f"ecom-lakehouse-raw-dev")
+SM_NAME = os.environ.get("SM_NAME", "ecom-lakehouse-eli-sm-dev")
+S3_RAW_BUCKET = os.environ.get("S3_RAW_BUCKET", f"ecom-lakehouse-eli-raw-dev")
 
 # Prefer explicit ARN; fall back to constructed value
 STEP_FUNCTIONS_ARN = os.environ.get(
