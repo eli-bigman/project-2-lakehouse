@@ -215,7 +215,7 @@ data "aws_iam_policy_document" "glue_ingest_policy" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["arn:aws:logs:${data.aws_region.current.name}:${var.account_id}:log-group:/aws-glue/*"]
+    resources = ["arn:aws:logs:${data.aws_region.current.region}:${var.account_id}:log-group:/aws-glue/*"]
   }
 
   # EXPLICIT DENY: Glue must NEVER delete objects from the immutable raw zone.
@@ -355,10 +355,10 @@ data "aws_iam_policy_document" "stepfunctions_policy" {
     effect  = "Allow"
     actions = ["lambda:InvokeFunction"]
     resources = [
-      "arn:aws:lambda:${data.aws_region.current.name}:${var.account_id}:function:${var.prefix}-normalize-${var.env}",
-      "arn:aws:lambda:${data.aws_region.current.name}:${var.account_id}:function:${var.prefix}-claim-file-${var.env}",
-      "arn:aws:lambda:${data.aws_region.current.name}:${var.account_id}:function:${var.prefix}-archive-file-${var.env}",
-      "arn:aws:lambda:${data.aws_region.current.name}:${var.account_id}:function:${var.prefix}-validate-schema-${var.env}",
+      "arn:aws:lambda:${data.aws_region.current.region}:${var.account_id}:function:${var.prefix}-normalize-${var.env}",
+      "arn:aws:lambda:${data.aws_region.current.region}:${var.account_id}:function:${var.prefix}-claim-file-${var.env}",
+      "arn:aws:lambda:${data.aws_region.current.region}:${var.account_id}:function:${var.prefix}-archive-file-${var.env}",
+      "arn:aws:lambda:${data.aws_region.current.region}:${var.account_id}:function:${var.prefix}-validate-schema-${var.env}",
     ]
   }
 
@@ -373,8 +373,8 @@ data "aws_iam_policy_document" "stepfunctions_policy" {
       "glue:BatchStopJobRun",
     ]
     resources = [
-      "arn:aws:glue:${data.aws_region.current.name}:${var.account_id}:job/${var.prefix}-ingest-${var.env}",
-      "arn:aws:glue:${data.aws_region.current.name}:${var.account_id}:job/${var.prefix}-optimize-${var.env}",
+      "arn:aws:glue:${data.aws_region.current.region}:${var.account_id}:job/${var.prefix}-ingest-${var.env}",
+      "arn:aws:glue:${data.aws_region.current.region}:${var.account_id}:job/${var.prefix}-optimize-${var.env}",
     ]
   }
 
@@ -389,7 +389,7 @@ data "aws_iam_policy_document" "stepfunctions_policy" {
       "athena:StopQueryExecution",
     ]
     resources = [
-      "arn:aws:athena:${data.aws_region.current.name}:${var.account_id}:workgroup/ecom_lakehouse_wg_${var.env}",
+      "arn:aws:athena:${data.aws_region.current.region}:${var.account_id}:workgroup/ecom_lakehouse_wg_${var.env}",
     ]
   }
 
@@ -423,7 +423,7 @@ data "aws_iam_policy_document" "stepfunctions_policy" {
     effect  = "Allow"
     actions = ["states:StartExecution"]
     resources = [
-      "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.prefix}-sm-${var.env}",
+      "arn:aws:states:${data.aws_region.current.region}:${var.account_id}:stateMachine:${var.prefix}-sm-${var.env}",
     ]
   }
 
@@ -600,7 +600,7 @@ data "aws_iam_policy_document" "eventbridge_sf_policy" {
     effect  = "Allow"
     actions = ["states:StartExecution"]
     resources = [
-      "arn:aws:states:${data.aws_region.current.name}:${var.account_id}:stateMachine:${var.prefix}-sm-${var.env}",
+      "arn:aws:states:${data.aws_region.current.region}:${var.account_id}:stateMachine:${var.prefix}-sm-${var.env}",
     ]
   }
 }

@@ -16,10 +16,10 @@
 resource "aws_dynamodb_table" "ingestion_ledger" {
   name         = "ecom_lakehouse_ingestion_ledger_${var.env}"
   billing_mode = "PAY_PER_REQUEST"
-  # hash_key is deprecated in AWS provider v6 in favour of key_schema inside the
-  # resource body, but the replacement block syntax is not yet supported in the
-  # hashicorp/aws Terraform resource (only in the underlying SDK). Keep hash_key
-  # for now — it still works and validate passes; upgrade when provider support lands.
+
+  # NOTE: hash_key is deprecated in AWS provider v6 in favour of key_schema blocks,
+  # but key_schema block type is not yet implemented in aws_dynamodb_table resource.
+  # Keeping hash_key until the provider adds the block — it still works correctly.
   hash_key = "file_key"
 
   attribute {
@@ -81,7 +81,11 @@ resource "aws_dynamodb_table" "ingestion_ledger" {
 resource "aws_dynamodb_table" "watermarks" {
   name         = "ecom_lakehouse_watermarks_${var.env}"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "dataset"
+
+  # NOTE: hash_key is deprecated in AWS provider v6 in favour of key_schema blocks,
+  # but key_schema block type is not yet implemented in aws_dynamodb_table resource.
+  # Keeping hash_key until the provider adds the block — it still works correctly.
+  hash_key = "dataset"
 
   attribute {
     name = "dataset"
