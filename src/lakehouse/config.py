@@ -13,6 +13,7 @@ All config dicts below key on the SHORT name.  DATASET_TO_TABLE maps short→tab
 """
 
 import os
+import sys
 
 # ---------------------------------------------------------------------------
 # Environment  (resolved from Lambda/Glue env vars; defaults to dev/eu-west-1)
@@ -24,8 +25,24 @@ ENV = os.environ.get("TF_ENV", "dev")
 # ---------------------------------------------------------------------------
 # Project prefix
 # Matches architecture.md §3.1: "ecom-lakehouse" for resource names (kebab-case).
+# Resolves prefix dynamically from command-line arguments (for Glue runs)
+# or environment variables (for Lambda runs / local dev).
 # ---------------------------------------------------------------------------
-PROJECT_PREFIX = "ecom-lakehouse"
+PROJECT_PREFIX = (
+    os.environ.get("PROJECT_PREFIX") or os.environ.get("PROJECT_NAME") or "ecom-lakehouse"
+)
+for i in range(len(sys.argv)):
+    arg = sys.argv[i]
+    if arg in ("--PROJECT_PREFIX", "--project_prefix"):
+        if i + 1 < len(sys.argv):
+            PROJECT_PREFIX = sys.argv[i + 1]
+            break
+    elif arg.startswith("--PROJECT_PREFIX="):
+        PROJECT_PREFIX = arg.split("=", 1)[1]
+        break
+    elif arg.startswith("--project_prefix="):
+        PROJECT_PREFIX = arg.split("=", 1)[1]
+        break
 
 # ---------------------------------------------------------------------------
 # AWS coordinates

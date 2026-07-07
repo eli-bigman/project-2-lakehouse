@@ -47,3 +47,7 @@ derby.log
 .coverage
 htmlcov/
 junit-*.xml
+
+# AI & Scratch
+.ai/
+scratch/

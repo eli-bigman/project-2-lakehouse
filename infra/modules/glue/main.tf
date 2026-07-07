@@ -153,9 +153,10 @@ resource "aws_glue_job" "ingest" {
   default_arguments = merge(local.common_glue_args, {
     # Dataset name injected by Step Functions at StartJobRun time:
     # e.g. --dataset=orders, --dataset=products, --dataset=order_items.
-    "--dataset"    = ""
-    "--env"        = var.env
-    "--dwh-bucket" = var.dwh_bucket_name
+    "--dataset"        = ""
+    "--env"            = var.env
+    "--dwh-bucket"     = var.dwh_bucket_name
+    "--project_prefix" = var.prefix
   })
 
   # Execution property: only one concurrent run per job name (Step Functions serialises).
@@ -192,8 +193,9 @@ resource "aws_glue_job" "optimize" {
   }
 
   default_arguments = merge(local.common_glue_args, {
-    "--env"        = var.env
-    "--dwh-bucket" = var.dwh_bucket_name
+    "--env"            = var.env
+    "--dwh-bucket"     = var.dwh_bucket_name
+    "--project_prefix" = var.prefix
     # Tables to optimize (comma-separated); Step Functions can override per run.
     "--tables" = "dim_products,fct_orders,fct_order_items"
   })

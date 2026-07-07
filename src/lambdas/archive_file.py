@@ -25,6 +25,7 @@ from typing import Any, Dict
 
 import boto3
 
+from lakehouse.config import PROJECT_PREFIX
 from lakehouse.ledger import LedgerClient
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     dataset: str = event["dataset"]
     env: str = event["env"]
     # archive_bucket is optional — derive from env when not provided
-    archive_bucket: str = event.get("archive_bucket", f"ecom-lakehouse-archive-{env}")
+    archive_bucket: str = event.get("archive_bucket", f"{PROJECT_PREFIX}-archive-{env}")
 
     filename = os.path.basename(file_key)
 

@@ -1,7 +1,21 @@
 import os
 import sys
 import time
+from pathlib import Path
 import boto3
+
+def load_env():
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    if key.strip() not in os.environ:
+                        os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+load_env()
 
 PROFILE = os.environ.get("AWS_PROFILE", "sandbox-lakehouse-dev")
 REGION = os.environ.get("AWS_REGION", "eu-west-1")
@@ -27,8 +41,8 @@ def main():
     session = get_session()
     athena = session.client("athena")
     
-    database = f"ecom_lakehouse_db_{ENV}"
-    output_location = f"s3://ecom-lakehouse-athena-results-{ENV}/"
+    database = os.environ.get("ATHENA_DATABASE", f"ecom_lakehouse_eli_db_{ENV}")
+    output_location = os.environ.get("ATHENA_RESULTS_URI", f"s3://ecom-lakehouse-eli-athena-results-{ENV}/results/")
     
     print("=" * 60)
     print(f"  ATHENA QUERY TOOL (DB: {database})")

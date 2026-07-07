@@ -33,11 +33,24 @@ from datetime import datetime, timezone
 
 import boto3
 
+def load_env():
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    if key.strip() not in os.environ:
+                        os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+load_env()
+
 # --- Configuration ------------------------------------------------------------
 PROFILE    = os.environ.get("AWS_PROFILE", "sandbox-lakehouse-dev")
 REGION     = os.environ.get("AWS_REGION",  "eu-west-1")
 ENV        = "dev"
-PREFIX     = "ecom-lakehouse"
+PREFIX     = os.environ.get("PROJECT_PREFIX", "ecom-lakehouse-eli")
 TFVARS     = "dev.tfvars"
 INFRA_DIR  = str(Path(__file__).parent.parent / "infra" / "envs" / "dev")
 ROOT_DIR   = str(Path(__file__).parent.parent)

@@ -38,6 +38,7 @@ import pyarrow.parquet as pq
 # Import EXPECTED_COLUMNS from the lakehouse library.
 # In the Lambda deployment package, src/lakehouse is included as a layer or
 # bundled in the deployment zip alongside this file.
+from lakehouse.config import PROJECT_PREFIX
 from lakehouse.schemas import EXPECTED_COLUMNS
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     if "staging_bucket" not in event:
         event["staging_bucket"] = (
-            os.environ.get("STAGING_BUCKET") or f"ecom-lakehouse-staging-{event['env']}"
+            os.environ.get("STAGING_BUCKET") or f"{PROJECT_PREFIX}-staging-{event['env']}"
         )
 
     required_keys = ["raw_key", "dataset", "batch_id", "raw_bucket", "staging_bucket", "env"]

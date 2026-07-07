@@ -89,7 +89,7 @@ def main(argv=None):
 
     # Create SparkSession with Delta extensions
     spark = lake_io.delta_session(
-        app_name=f"ecom-lakehouse-optimize-{args.dataset}-{env}",
+        app_name=f"{config.PROJECT_PREFIX}-optimize-{args.dataset}-{env}",
         enable_hive_catalog=False,
     )
 
